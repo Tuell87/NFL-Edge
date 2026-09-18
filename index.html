@@ -51,7 +51,8 @@ header.top{
 .top-in{max-width:1180px; margin:0 auto; padding:12px 16px; display:flex; gap:16px; align-items:baseline; flex-wrap:wrap}
 .brand{font-weight:600; letter-spacing:-.01em; font-size:17px}
 .brand span{color:var(--muted); font-weight:400}
-.quota{margin-left:auto; font-family:var(--mono); font-size:12px; color:var(--muted)}
+.quota{margin-left:auto; font-family:var(--mono); font-size:12px; color:var(--muted);
+  white-space:normal; overflow-wrap:anywhere; min-width:0}
 .quota b{color:var(--ink); font-weight:500}
 
 /* ---- readout strip (hero) ---- */
@@ -176,6 +177,41 @@ tr:hover td{background:var(--sunk)}
 .warnbox{background:var(--warn-bg); color:var(--warn); border:1px solid var(--warn); padding:10px 13px; margin-bottom:12px; border-radius:2px; font-size:13.5px}
 .spin{display:inline-block; width:11px; height:11px; border:2px solid var(--rule); border-top-color:var(--ref); border-radius:50%; animation:sp .7s linear infinite; vertical-align:-1px}
 @keyframes sp{to{transform:rotate(360deg)}}
+
+/* ---- narrow screens: stack table rows into labelled blocks ----
+   Horizontal scroll hides the columns that matter (EV, stake) behind a
+   swipe nobody discovers. Below 760px each row becomes its own block
+   with the column name printed beside every value. */
+@media (max-width:760px){
+  table.stack{display:block}
+  table.stack tr:first-child{display:none}          /* header row */
+  table.stack tr{
+    display:block; border:1px solid var(--rule); border-radius:2px;
+    padding:9px 11px; margin-bottom:8px; background:var(--surface);
+  }
+  table.stack tr:hover td{background:none}
+  table.stack td{
+    display:flex; justify-content:space-between; align-items:baseline; gap:14px;
+    border:0; padding:3px 0; text-align:right;
+  }
+  table.stack td:empty{display:none}
+  table.stack td::before{
+    content:attr(data-l); color:var(--muted); font-size:11.5px;
+    text-align:left; flex:0 0 auto; font-family:var(--sans);
+  }
+  table.stack td[data-l=""]::before{content:none}
+  table.stack td.num{font-family:var(--mono)}
+  table.stack .scroll{overflow:visible}
+  /* first cell of each block reads as its heading */
+  table.stack td:first-child{
+    font-weight:600; font-size:14px; padding-bottom:6px; margin-bottom:4px;
+    border-bottom:1px solid var(--rule-soft); display:block; text-align:left;
+  }
+  table.stack td:first-child::before{display:block; margin-bottom:1px}
+  .scroll{max-height:none}
+  .top-in{padding:10px 16px}
+  .quota{margin-left:0; width:100%; text-align:left; font-size:11.5px}
+}
 @media (max-width:620px){
   .cell .v{font-size:18px}
   .leg{grid-template-columns:1fr auto; }
@@ -451,7 +487,7 @@ tr:hover td{background:var(--sunk)}
       </div>
     </div>
     <div class="card"><h2>Data sources</h2>
-      <div class="body"><div class="scroll"><table>
+      <div class="body"><div class="scroll"><table class="srctbl">
         <tr><th>Source</th><th>Supplies</th><th>Cost</th><th>Key</th></tr>
         <tr><td>The Odds API</td><td>Live prices across books, game lines and player props</td><td>Free tier 500 credits/mo</td><td class="mono">required</td></tr>
         <tr><td>ESPN public API</td><td>Schedule, records, scores, injury reports</td><td>Free</td><td class="mono">none</td></tr>
@@ -575,6 +611,19 @@ const cfg=()=>({
   method:$('#devigm').value,
   refmode:$('#refmode').value
 });
+
+
+/* Give every data cell its column name, so the narrow-screen rule above
+   can print a label next to each value. Called on every table built. */
+function stack(t){
+  const heads=[...(t.querySelector('tr')?.children||[])].map(h=>h.textContent.trim());
+  [...t.rows].forEach((r,ri)=>{
+    if(ri===0) return;
+    [...r.cells].forEach((c,i)=>{ if(c.tagName==='TD') c.setAttribute('data-l',heads[i]||''); });
+  });
+  t.classList.add('stack');
+  return t;
+}
 
 /* ============================================================
    SECTION 3 — tabs
@@ -775,7 +824,7 @@ function marketBlock(mkt,title,c){
       `<td class="num">${holdPct(b.probs).toFixed(2)}%</td>`;
     t.appendChild(tr);
   });
-  tb.appendChild(t); wrap.appendChild(tb);
+  stack(t); tb.appendChild(t); wrap.appendChild(tb);
   return wrap;
 }
 
@@ -837,7 +886,7 @@ function renderEdges(){
           <button class="btn ghost sm" data-add="${i}">+parlay</button></td>`;
     t.appendChild(tr);
   });
-  host.innerHTML=''; const sc=el('div','scroll'); sc.appendChild(t); host.appendChild(sc);
+  stack(t); host.innerHTML=''; const sc=el('div','scroll'); sc.appendChild(t); host.appendChild(sc);
   host.appendChild(el('p','note',`Showing ${Math.min(rows.length,150)} of ${rows.length}. Stake column uses ${$('#kellymult').selectedOptions[0].textContent.split('—')[0].trim()} on a $${c.bank} bankroll, capped at ${c.cap}%.`));
   host.querySelectorAll('[data-add]').forEach(b=>b.addEventListener('click',()=>{
     const r=rows[+b.dataset.add];
@@ -883,7 +932,7 @@ function renderArb(){
       f.split.map(s=>`<tr><td>${esc(s.outcome)}</td><td>${esc(s.book)}</td>
         <td class="num">${fmtAm(s.price)}</td><td class="num">${pct(s.weight)}</td>
         <td class="num">$${(s.weight*1000).toFixed(2)}</td></tr>`).join('');
-    const b=el('div','body'); b.appendChild(t);
+    stack(t); const b=el('div','body'); b.appendChild(t);
     b.appendChild(el('p','note','Implied probabilities sum to '+pct(f.invSum)+'. Both tickets must be placed before either price moves, or the lock breaks and you are left with one naked side.'));
     card.appendChild(b); host.appendChild(card);
   });
@@ -970,7 +1019,7 @@ function renderProps(ev,mkey){
       <td>${r.ev>0?`<button class="btn ghost sm" data-plog="${i}">log bet</button> `:''}<button class="btn ghost sm" data-padd="${i}">+parlay</button></td>`;
     t.appendChild(tr);
   });
-  host.innerHTML=''; const sc=el('div','scroll'); sc.appendChild(t); host.appendChild(sc);
+  stack(t); host.innerHTML=''; const sc=el('div','scroll'); sc.appendChild(t); host.appendChild(sc);
   if(!good.length)host.appendChild(el('p','note','Nothing cleared your threshold, so the 40 closest quotes are shown for reference. Negative EV rows are what a normal, fairly-priced board looks like.'));
   const list=good.length?good:rows;
   host.querySelectorAll('[data-padd]').forEach(b=>b.addEventListener('click',()=>{
@@ -1050,7 +1099,7 @@ function renderParlay(){
     <tr><td>House edge on the ticket</td><td class="num neg">${p.holdOnTicket.toFixed(2)}%</td><td>compounded across every leg</td></tr>
     <tr><td>Same legs bet singly</td><td class="num ${p.straightEV>0?'pos':'neg'}">${p.straightEV>0?'+':''}${pct(p.straightEV)}</td><td>average EV per $1 if you bet them one at a time</td></tr>
     <tr><td>Cost of parlaying</td><td class="num neg">${pct(p.straightEV-p.ev)}</td><td>EV given up by combining rather than separating</td></tr>`;
-  b.appendChild(tbl);
+  stack(tbl); b.appendChild(tbl);
   b.appendChild(bar);
   b.appendChild(el('p','note',`Worst single leg carries ${Math.max(...p.legHolds).toFixed(2)}% hold; the ticket carries ${p.holdOnTicket.toFixed(2)}%. Margin does not average across legs, it stacks.`));
 
@@ -1080,6 +1129,7 @@ function renderParlay(){
       <td class="num ref">${fmtAm(p.fairAmerican)}</td><td class="num">${pct(p.pJoint,2)}</td>
       <td class="num neg">${p.holdOnTicket.toFixed(2)}%</td><td class="num">${mult.toFixed(1)}×</td></tr>`;
   }
+  stack(t);
 })();
 renderLegs();
 
@@ -1149,7 +1199,9 @@ function renderBase(){
   });
   html+=`</table></div><p class="note">If any bucket showed a persistent edge, it would have been bet away years ago.
     The value of this table is not finding one — it is calibrating how small real edges are, so a 12% claim elsewhere reads as the error it is.</p>`;
-  $('#base-out').innerHTML=html; msg('#base-msg','');
+  $('#base-out').innerHTML=html;
+  $('#base-out').querySelectorAll('table').forEach(stack);
+  msg('#base-msg','');
 }
 
 /* ============================================================
@@ -1194,7 +1246,9 @@ $('#loadctx').addEventListener('click',async()=>{
         <td style="font-size:12.5px;color:var(--muted)">${esc(i.type)}</td></tr>`;
     });
     html+='</table></div><p class="note">Books move on this faster than you can. Its use here is explaining a price that looks mispriced — an outlier next to a fresh Out is usually a stale line, not an edge.</p>';
-    $('#ctx-out').innerHTML=html; msg('#ctx-msg','');
+    $('#ctx-out').innerHTML=html;
+    $('#ctx-out').querySelectorAll('table').forEach(stack);
+    msg('#ctx-msg','');
   }catch(e){ msg('#ctx-msg','err','ESPN request failed.'); }
 });
 
@@ -1333,7 +1387,7 @@ function renderCLV(){
              <button class="btn ghost sm" data-push="${b.id}">P</button>`}
            <button class="btn ghost sm" data-del="${b.id}">×</button></td>`));
   });
-  list.innerHTML = ''; const sc = el('div','scroll'); sc.appendChild(t); list.appendChild(sc);
+  stack(t); list.innerHTML = ''; const sc = el('div','scroll'); sc.appendChild(t); list.appendChild(sc);
   list.appendChild(el('p','note','Grade bets yourself with W / L / P. Results are secondary — the CLV column is the one that tells you something early.'));
 
   const set = (attr, val) => list.querySelectorAll(`[data-${attr}]`).forEach(btn =>
@@ -1403,6 +1457,9 @@ $('#clv-demo').addEventListener('click', () => {
 });
 
 renderCLV();
+
+// static tables present in the markup (Method tab) get labelled too
+document.querySelectorAll('#p-method table').forEach(stack);
 
 /* re-render on config change */
 ['bankroll','kellymult','cap','minev','devigm','refmode'].forEach(id=>
