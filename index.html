@@ -260,6 +260,7 @@ tr:hover td{background:var(--sunk)}
     <button role="tab" aria-selected="true"  data-p="setup">Setup</button>
     <button role="tab" aria-selected="false" data-p="board">Odds board</button>
     <button role="tab" aria-selected="false" data-p="edges">Edges</button>
+    <button role="tab" aria-selected="false" data-p="mine">My books</button>
     <button role="tab" aria-selected="false" data-p="arb">Arbitrage</button>
     <button role="tab" aria-selected="false" data-p="props">Player props</button>
     <button role="tab" aria-selected="false" data-p="parlay">Parlay lab</button>
@@ -372,6 +373,31 @@ tr:hover td{background:var(--sunk)}
         <p class="note">Each row is one price at one book, compared against the median devigged probability of every <em>other</em> book. A book is never measured against itself. Positive EV here means the price is out of line with the rest of the market — not that the bet is likely to win.</p>
         <div id="edges-out"><div class="empty">Run a scan on the Odds board tab.</div></div>
       </div>
+    </div>
+  </section>
+
+  <!-- ============ MY BOOKS ============ -->
+  <section class="panel" id="p-mine">
+    <div class="card">
+      <h2>My books <span class="sub">only prices you can actually take</span></h2>
+      <div class="body">
+        <p class="note">Every book on the board still feeds the fair-value reference — that is what makes the comparison meaningful, and the offshore books are genuinely sharp. But only the books you select here are ever shown as something to bet.</p>
+        <div id="mybooks-chips" class="chips"></div>
+        <p class="note" style="margin-top:10px">Books are listed from your last scan. Turn on any you hold an account with.</p>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Head to head <span class="sub">which of your books has the better number</span></h2>
+      <div class="body">
+        <p class="note">Same selection, priced at each of your books. Line shopping between two accounts is the least glamorous edge available and the most reliable one, because it needs no opinion about the game.</p>
+        <div id="h2h-out"><div class="empty">Scan the board first.</div></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Edges at your books <span class="sub">measured against all 16, bettable at yours</span></h2>
+      <div class="body"><div id="myedges-out"><div class="empty">Scan the board first.</div></div></div>
     </div>
   </section>
 
@@ -613,7 +639,7 @@ function parseCSV(text){
 /* ============================================================
    SECTION 2 — state, storage, small DOM helpers
    ============================================================ */
-const BUILD='r4';            // bump on every release — shown in the header
+const BUILD='r5';            // bump on every release — shown in the header
 const S={key:'',regions:['us'],games:[],legs:[],quota:null,scanned:null,history:null};
 const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
 const el=(t,c,h)=>{const n=document.createElement(t); if(c)n.className=c; if(h!=null)n.innerHTML=h; return n;};
@@ -741,7 +767,7 @@ async function scanBoard(){
     S.games=games; S.scanned=new Date();
     captureCloses();
     msg('#board-msg','');
-    renderBoard(); renderEdges(); renderArb(); fillPropGames();
+    renderBoard(); renderEdges(); renderMine(); renderArb(); fillPropGames();
   }catch(e){ msg('#board-msg','err','Network request failed. Check your connection.'); }
 }
 
@@ -934,6 +960,152 @@ function renderEdges(){
   }));
   host.querySelectorAll('[data-log]').forEach(b=>b.addEventListener('click',()=>{
     logBet(rows[+b.dataset.log]); b.textContent='logged'; b.disabled=true;
+  }));
+}
+
+
+/* ============================================================
+   SECTION 13 — my books
+
+   Two separate jobs:
+   1. Head to head — same selection at each of the user's own books,
+      so line shopping between accounts needs no opinion about the game.
+   2. Edges filtered to bettable books. The reference still comes from
+      every book on the board, including offshore ones, because those
+      are sharp and make the fair value better. They are just never
+      offered as something to bet.
+   ============================================================ */
+S.myBooks = load('mybooks', ['fanduel','draftkings']);
+
+function booksSeen(){
+  const seen = new Map();
+  for(const g of S.games) for(const b of g.bookmakers||[]) seen.set(b.key, b.title);
+  return [...seen].sort((a,b)=>a[1].localeCompare(b[1]));
+}
+
+function renderMyBookChips(){
+  const host = $('#mybooks-chips');
+  const seen = booksSeen();
+  if(!seen.length){
+    host.innerHTML = '<span style="color:var(--muted);font-size:13.5px">Scan the board and your books will be listed here.</span>';
+    return;
+  }
+  host.innerHTML = '';
+  seen.forEach(([key,title])=>{
+    const on = S.myBooks.includes(key);
+    const c = el('button','chip', esc(title) + (SHARP.includes(key) ? ' <span class="tag reft">sharp</span>' : ''));
+    c.setAttribute('aria-pressed', String(on));
+    c.addEventListener('click',()=>{
+      const now = c.getAttribute('aria-pressed')==='true';
+      c.setAttribute('aria-pressed', String(!now));
+      S.myBooks = now ? S.myBooks.filter(k=>k!==key) : S.myBooks.concat([key]);
+      store('mybooks', S.myBooks);
+      renderMine();
+    });
+    host.appendChild(c);
+  });
+}
+
+function renderMine(){
+  renderMyBookChips();
+  renderH2H();
+  renderMyEdges();
+}
+
+/* ---- 1. head to head between the user's own books ---- */
+function renderH2H(){
+  const host = $('#h2h-out');
+  if(!S.games.length){ host.innerHTML = '<div class="empty">Scan the board first.</div>'; return; }
+  if(S.myBooks.length < 2){
+    host.innerHTML = '<div class="empty">Turn on at least two books above to compare them.</div>'; return;
+  }
+  const c = cfg(), rows = [];
+  for(const g of S.games){
+    for(const [mk,title] of [['h2h','Moneyline'],['spreads','Spread'],['totals','Total']]){
+      const mkt = collectMarket(g, mk); if(!mkt) continue;
+      const mine = S.myBooks.map(k => mkt.books.find(b=>b.key===k)).filter(Boolean);
+      if(mine.length < 2) continue;                    // both books must be on this number
+      const cons = consensusFair(mkt.books.map(b=>({key:b.key,probs:b.probs})), c.method);
+      mkt.labels.forEach((lab,i)=>{
+        const priced = mine.map(b=>({title:b.title,key:b.key,price:b.prices[i],dec:amToDec(b.prices[i])}));
+        const best = priced.reduce((a,b)=>b.dec>a.dec?b:a);
+        const worst = priced.reduce((a,b)=>b.dec<a.dec?b:a);
+        if(best.dec === worst.dec) return;             // no disagreement, nothing to shop
+        const gain = cons ? evPerUnit(cons.fair[i],best.dec) - evPerUnit(cons.fair[i],worst.dec) : null;
+        rows.push({game:`${g.away_team} at ${g.home_team}`, market:title, sel:lab,
+          priced, best, worst, gain, commence:g.commence_time});
+      });
+    }
+  }
+  if(!rows.length){
+    host.innerHTML = '<div class="empty">Your books agree on every number right now.<br>That happens — it means nothing to shop today, not that shopping is pointless.</div>';
+    return;
+  }
+  rows.sort((a,b)=>(b.gain??0)-(a.gain??0));
+  const t = el('table');
+  const heads = S.myBooks.map(k=>{
+    const n = booksSeen().find(([key])=>key===k); return n ? n[1] : k;
+  });
+  t.innerHTML = `<tr><th>Game</th><th>Market</th><th>Selection</th>` +
+    heads.map(h=>`<th class="num">${esc(h)}</th>`).join('') +
+    `<th>Take at</th><th class="num">Worth</th></tr>`;
+  rows.slice(0,120).forEach(r=>{
+    const cells = S.myBooks.map(k=>{
+      const p = r.priced.find(x=>x.key===k);
+      if(!p) return `<td class="num" style="color:var(--faint)">—</td>`;
+      const isBest = p.dec === r.best.dec;
+      return `<td class="num${isBest?' pos':''}">${fmtAm(p.price)}${isBest?' <span class="tag best">best</span>':''}</td>`;
+    }).join('');
+    t.appendChild(el('tr',null,
+      `<td>${esc(r.game)}</td><td>${esc(r.market)}</td><td>${esc(r.sel)}</td>${cells}` +
+      `<td class="pos">${esc(r.best.title)}</td>` +
+      `<td class="num">${r.gain!=null?'+'+pct(r.gain):'—'}</td>`));
+  });
+  stack(t);
+  host.innerHTML=''; const sc=el('div','scroll'); sc.appendChild(t); host.appendChild(sc);
+  host.appendChild(el('p','note',
+    `${rows.length} selection${rows.length===1?'':'s'} where your books disagree. “Worth” is the expected value you gain by taking the better of the two rather than the worse — pure line shopping, no view on the game required.`));
+}
+
+/* ---- 2. edges, restricted to bettable books ---- */
+function renderMyEdges(){
+  const host = $('#myedges-out'), c = cfg();
+  if(!S.games.length){ host.innerHTML = '<div class="empty">Scan the board first.</div>'; return; }
+  const all = allQuotes().filter(r=>r.ev>c.minev).sort((a,b)=>b.ev-a.ev);
+  const mine = all.filter(r=>S.myBooks.includes(r.bookKey));
+  const missed = all.length - mine.length;
+
+  let head = `<div class="readout" style="margin:0 0 14px">
+    <div class="cell ${mine.length?'pos':''}"><div class="v">${mine.length}</div><div class="k">bettable by you</div></div>
+    <div class="cell"><div class="v">${all.length}</div><div class="k">on the whole board</div></div>
+    <div class="cell"><div class="v">${missed}</div><div class="k">at books you don't use</div></div>
+  </div>`;
+  if(missed > 0){
+    const bestMissed = all.find(r=>!S.myBooks.includes(r.bookKey));
+    head += `<p class="note">The ${missed} you can't take ${missed===1?'is':'are'} the cost of running two accounts instead of six. The best of them is ${pct(bestMissed.ev)} at ${esc(bestMissed.book)}. Worth knowing, not worth chasing — an account you can't fund or won't get paid by is not an edge.</p>`;
+  }
+  if(!mine.length){
+    host.innerHTML = head + `<div class="empty">Nothing at your books clears ${pct(c.minev,0)} right now.<br>
+      That is the normal result most days. It is the tool working, not failing.</div>`;
+    return;
+  }
+  const t = el('table');
+  t.innerHTML = `<tr><th>Game</th><th>Market</th><th>Selection</th><th>Book</th>
+    <th class="num">Price</th><th class="num">Fair</th><th class="num">EV</th>
+    <th class="num">Stake</th><th></th></tr>`;
+  mine.slice(0,120).forEach((r,i)=>{
+    const st = stakeFor(r.pFair, r.dec, c.bank, c.mult, c.cap);
+    t.appendChild(el('tr',null,
+      `<td>${esc(r.game)}</td><td>${esc(r.market)}</td><td>${esc(r.sel)}</td><td>${esc(r.book)}</td>
+       <td class="num">${fmtAm(r.price)}</td><td class="num ref">${fmtAm(probToAm(r.pFair))}</td>
+       <td class="num pos">+${pct(r.ev)}</td>
+       <td class="num">$${st.amount.toFixed(2)}</td>
+       <td><button class="btn ghost sm" data-mlog="${i}">log bet</button></td>`));
+  });
+  stack(t);
+  host.innerHTML = head; const sc=el('div','scroll'); sc.appendChild(t); host.appendChild(sc);
+  host.querySelectorAll('[data-mlog]').forEach(b=>b.addEventListener('click',()=>{
+    logBet(mine[+b.dataset.mlog]); b.textContent='logged'; b.disabled=true;
   }));
 }
 
@@ -1501,7 +1673,7 @@ document.querySelectorAll('#p-method table').forEach(stack);
 
 /* re-render on config change */
 ['bankroll','kellymult','cap','minev','devigm','refmode'].forEach(id=>
-  $('#'+id).addEventListener('change',()=>{ if(S.games.length){renderBoard();renderEdges();renderArb();} }));
+  $('#'+id).addEventListener('change',()=>{ if(S.games.length){renderBoard();renderEdges();renderMine();renderArb();} }));
 </script>
 </body>
 </html>
