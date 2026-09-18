@@ -51,6 +51,10 @@ header.top{
 .top-in{max-width:1180px; margin:0 auto; padding:12px 16px; display:flex; gap:16px; align-items:baseline; flex-wrap:wrap}
 .brand{font-weight:600; letter-spacing:-.01em; font-size:17px}
 .brand span{color:var(--muted); font-weight:400}
+.build{
+  font-family:var(--mono); font-size:11px; color:var(--ref);
+  border:1px solid var(--ref); border-radius:2px; padding:1px 5px; vertical-align:2px;
+}
 .quota{margin-left:auto; font-family:var(--mono); font-size:12px; color:var(--muted);
   white-space:normal; overflow-wrap:anywhere; min-width:0}
 .quota b{color:var(--ink); font-weight:500}
@@ -147,7 +151,20 @@ tr:hover td{background:var(--sunk)}
   content:attr(data-b); position:absolute; top:21px; left:50%; transform:translateX(-50%) rotate(0deg);
   font-size:9.5px; color:var(--faint); white-space:nowrap; font-family:var(--mono);
 }
-.scale .ends{display:flex; justify-content:space-between; font-family:var(--mono); font-size:10.5px; color:var(--faint); margin-top:16px}
+.scale .ends{display:flex; justify-content:space-between; gap:10px; font-family:var(--mono);
+  font-size:10.5px; color:var(--faint); margin-top:16px}
+.scale .summary{font-size:11.5px; color:var(--muted); margin-top:6px; line-height:1.45}
+.scale .summary b{color:var(--ink); font-weight:500; font-family:var(--mono)}
+.scale .summary .bestbk{color:var(--pos); font-weight:500}
+@media (max-width:760px){
+  /* a dozen four-letter labels on one axis collide into mush — drop them
+     and name the books in readable text underneath instead */
+  .scale .tick::after{display:none}
+  .scale .axis{height:26px}
+  .scale .tick{top:4px; height:18px}
+  .scale .tick.edge{top:2px; height:22px}
+  .scale .ends span:nth-child(2){display:none}
+}
 
 /* ---- game block ---- */
 .game{border:1px solid var(--rule); background:var(--surface); margin-bottom:12px}
@@ -222,7 +239,7 @@ tr:hover td{background:var(--sunk)}
 
 <header class="top">
   <div class="top-in">
-    <div class="brand">NFL Edge Terminal <span>— price deviation, not predictions</span></div>
+    <div class="brand">NFL Edge Terminal <span>— price deviation, not predictions</span> <span class="build" id="build"></span></div>
     <div class="quota" id="quota">no key loaded</div>
   </div>
 </header>
@@ -486,6 +503,9 @@ tr:hover td{background:var(--sunk)}
         <p class="note"><b>The honest caveats.</b> Consensus is not truth — if every book is wrong together, the tool sees nothing. Devig methods disagree, most on longshots, which is why the worst-case option exists. Closing-line value is the only feedback loop worth tracking: log whether your price beat the closing number, because results take hundreds of bets to mean anything and CLV tells you sooner. Books restrict accounts that consistently take the best price. And every parlay in the Parlay lab will show a negative expected value unless a leg is genuinely mispriced, because that is what the arithmetic says.</p>
       </div>
     </div>
+    <div class="card"><h2>Version <span class="sub">check this after every update</span></h2>
+      <div class="body"><p class="note">Running build <b id="build2" class="mono"></b>. If this does not match the build you just uploaded, your browser is serving a cached copy — reload with <span class="mono">?v=</span> and a new number on the end of the address.</p></div>
+    </div>
     <div class="card"><h2>Data sources</h2>
       <div class="body"><div class="scroll"><table class="srctbl">
         <tr><th>Source</th><th>Supplies</th><th>Cost</th><th>Key</th></tr>
@@ -593,6 +613,7 @@ function parseCSV(text){
 /* ============================================================
    SECTION 2 — state, storage, small DOM helpers
    ============================================================ */
+const BUILD='r4';            // bump on every release — shown in the header
 const S={key:'',regions:['us'],games:[],legs:[],quota:null,scanned:null,history:null};
 const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
 const el=(t,c,h)=>{const n=document.createElement(t); if(c)n.className=c; if(h!=null)n.innerHTML=h; return n;};
@@ -638,6 +659,9 @@ $$('nav.rail button').forEach(b=>b.addEventListener('click',()=>{
 /* ============================================================
    SECTION 4 — setup: key, regions, connection test
    ============================================================ */
+document.getElementById('build').textContent=BUILD;
+document.getElementById('build2').textContent=BUILD;
+
 (function initSetup(){
   S.key=load('oddskey','')||'';
   S.regions=load('oddsregions',['us']);
@@ -805,6 +829,20 @@ function marketBlock(mkt,title,c){
     sc.appendChild(el('div',null,`<div style="font-size:12px;color:var(--muted);margin-bottom:14px">${esc(lab)}</div>`));
     sc.appendChild(ax);
     sc.appendChild(el('div','ends',`<span>${pct(lo,1)} implied</span><span>ticks left of the blue line are priced better than fair</span><span>${pct(hi,1)}</span>`));
+
+    // Name the books in text. Four-letter tick labels collide once a dozen
+    // books sit on one axis, so the axis shows shape and this line shows fact.
+    let bi=0,bv=-Infinity,wi=0,wv=Infinity;
+    mkt.books.forEach((b,j)=>{
+      const dv=amToDec(b.prices[i]);
+      if(dv>bv){bv=dv;bi=j;} if(dv<wv){wv=dv;wi=j;}
+    });
+    const nBetter=mkt.books.filter(b=>b.probs[i]<fair).length;
+    sc.appendChild(el('div','summary',
+      `best <span class="bestbk">${esc(mkt.books[bi].title)} ${fmtAm(mkt.books[bi].prices[i])}</span>`+
+      ` · fair <b class="ref">${fmtAm(probToAm(fair))}</b>`+
+      ` · worst ${esc(mkt.books[wi].title)} ${fmtAm(mkt.books[wi].prices[i])}`+
+      ` — ${nBetter} of ${mkt.books.length} book${mkt.books.length===1?'':'s'} priced better than fair`));
     wrap.appendChild(sc);
   });
 
