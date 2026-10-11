@@ -564,12 +564,8 @@ details.term .d b{color:var(--ink)}
           <div class="grid" style="margin-bottom:10px">
             <label class="f"><span>How many legs</span>
               <select id="bl-legs"><option>2</option><option selected>3</option><option>4</option><option>5</option><option>6</option></select></label>
-            <label class="f"><span>Market</span>
-              <select id="bl-mkt">
-                <option value="h2h">Moneyline — who wins</option>
-                <option value="spreads">Spread — who covers</option>
-                <option value="totals">Total — over or under</option>
-              </select></label>
+            <label class="f"><span>Choose legs by</span>
+              <select id="bl-mode2" hidden></select></label>
             <label class="f"><span>Choose legs by</span>
               <select id="bl-mode">
                 <option value="ev">Best price vs the market</option>
@@ -577,10 +573,25 @@ details.term .d b{color:var(--ink)}
                 <option value="dog">Biggest payout</option>
               </select></label>
           </div>
+          <div style="margin-bottom:12px">
+            <span style="font-size:12.5px;color:var(--muted);display:block;margin-bottom:5px">What kind of bets</span>
+            <div class="chips" id="bl-markets">
+              <button class="chip" data-m="h2h" data-free="1" aria-pressed="true">Moneyline</button>
+              <button class="chip" data-m="spreads" data-free="1" aria-pressed="false">Spread</button>
+              <button class="chip" data-m="totals" data-free="1" aria-pressed="false">Over / Under</button>
+              <button class="chip" data-m="player_anytime_td" aria-pressed="false">Anytime TD</button>
+              <button class="chip" data-m="player_pass_yds" aria-pressed="false">Pass yards</button>
+              <button class="chip" data-m="player_rush_yds" aria-pressed="false">Rush yards</button>
+              <button class="chip" data-m="player_reception_yds" aria-pressed="false">Rec yards</button>
+              <button class="chip" data-m="player_receptions" aria-pressed="false">Receptions</button>
+              <button class="chip" data-m="player_pass_tds" aria-pressed="false">Pass TDs</button>
+            </div>
+          </div>
           <div style="margin-bottom:8px">
             <span style="font-size:12.5px;color:var(--muted);display:block;margin-bottom:5px">Games to choose from — none selected means all of them</span>
             <div class="chips" id="bl-games"></div>
           </div>
+          <div id="bl-propbar" hidden style="margin-bottom:10px"></div>
           <div class="row">
             <button class="btn" id="bl-build">Build parlay</button>
             <button class="btn ghost sm" id="bl-clearsel">Clear game picks</button>
@@ -806,7 +817,7 @@ function parseCSV(text){
 /* ============================================================
    SECTION 2 — state, storage, small DOM helpers
    ============================================================ */
-const BUILD='r6';            // bump on every release — shown in the header
+const BUILD='r7';            // bump on every release — shown in the header
 const S={key:'',regions:['us'],games:[],legs:[],quota:null,scanned:null,history:null};
 const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
 const el=(t,c,h)=>{const n=document.createElement(t); if(c)n.className=c; if(h!=null)n.innerHTML=h; return n;};
@@ -1864,6 +1875,15 @@ document.querySelectorAll('#p-method table').forEach(stack);
    says so rather than burying it.
    ============================================================ */
 S.blGames = [];
+S.blMarkets = ['h2h'];
+S.props = {};          // { gameId: { marketKey: rawEventJSON } }
+
+const PROP_LABEL = {
+  player_anytime_td:'Anytime TD', player_pass_yds:'Pass yards',
+  player_rush_yds:'Rush yards', player_reception_yds:'Rec yards',
+  player_receptions:'Receptions', player_pass_tds:'Pass TDs'
+};
+const isProp = m => m.startsWith('player_');
 
 function renderBuilderGames(){
   const host=$('#bl-games'); if(!host) return;
@@ -1879,46 +1899,184 @@ function renderBuilderGames(){
       const on=c.getAttribute('aria-pressed')==='true';
       c.setAttribute('aria-pressed',String(!on));
       S.blGames = on ? S.blGames.filter(x=>x!==g.id) : S.blGames.concat([g.id]);
+      renderPropBar();
     });
     host.appendChild(c);
   });
+  renderPropBar();
+}
+
+function renderMarketChips(){
+  $$('#bl-markets .chip').forEach(c=>{
+    c.setAttribute('aria-pressed', String(S.blMarkets.includes(c.dataset.m)));
+    if(c.dataset.bound) return; c.dataset.bound='1';
+    c.addEventListener('click',()=>{
+      const m=c.dataset.m, on=S.blMarkets.includes(m);
+      S.blMarkets = on ? S.blMarkets.filter(x=>x!==m) : S.blMarkets.concat([m]);
+      if(!S.blMarkets.length) S.blMarkets=['h2h'];
+      renderMarketChips(); renderPropBar();
+    });
+  });
+}
+
+/* Props cost credits and game lines do not, so the cost is stated before
+   anything is spent, and fetched props are cached for the session. */
+function renderPropBar(){
+  const bar=$('#bl-propbar'); if(!bar) return;
+  const props=S.blMarkets.filter(isProp);
+  if(!props.length || !S.games.length){ bar.hidden=true; return; }
+  bar.hidden=false;
+  const targets = S.blGames.length ? S.blGames : S.games.map(g=>g.id);
+  const need = [];
+  targets.forEach(id => props.forEach(m => { if(!(S.props[id]&&S.props[id][m])) need.push([id,m]); }));
+  const cost = need.length * S.regions.length;
+  const have = targets.length*props.length - need.length;
+
+  if(!need.length){
+    bar.innerHTML = `<div class="ok">Props already loaded for ${targets.length} game${targets.length===1?'':'s'}. Building costs nothing more.</div>`;
+    return;
+  }
+  bar.innerHTML = `<div class="warnbox" style="margin-bottom:8px">
+      Player props need a separate request per game. Loading ${props.length} market${props.length===1?'':'s'}
+      for ${targets.length} game${targets.length===1?'':'s'} costs <b>${cost} credit${cost===1?'':'s'}</b>
+      of your ${S.quota?S.quota.remaining:'remaining'}.
+      ${have?`${have} already cached. `:''}${targets.length>6?'<b>Pick specific games above to cut this down.</b>':''}
+    </div>
+    <button class="btn" id="bl-loadprops">Load props — ${cost} credit${cost===1?'':'s'}</button>`;
+  $('#bl-loadprops').addEventListener('click',()=>loadProps(targets, props));
+}
+
+async function loadProps(gameIds, markets){
+  if(!S.key){ msg('#bl-msg','err','No API key saved.'); return; }
+  const btn=$('#bl-loadprops'); if(btn){ btn.disabled=true; btn.textContent='Loading…'; }
+  let ok=0, failed=0;
+  for(const id of gameIds){
+    const need = markets.filter(m => !(S.props[id]&&S.props[id][m]));
+    if(!need.length) continue;
+    const url=`https://api.the-odds-api.com/v4/sports/americanfootball_nfl/events/${id}/odds`
+      +`?apiKey=${encodeURIComponent(S.key)}&regions=${S.regions.join(',')}`
+      +`&markets=${need.join(',')}&oddsFormat=american`;
+    try{
+      const r=await fetch(url);
+      if(!r.ok){ failed++; continue; }
+      readQuota(r);
+      const ev=await r.json();
+      S.props[id]=S.props[id]||{};
+      need.forEach(m=>{ S.props[id][m]=ev; });
+      ok++;
+    }catch(e){ failed++; }
+  }
+  msg('#bl-msg', failed&&!ok?'err':'ok',
+    `Loaded props for ${ok} game${ok===1?'':'s'}${failed?`, ${failed} failed or had none posted`:''}. Now press Build parlay.`);
+  renderPropBar();
+}
+
+/* Turn a cached prop event into priced selections.
+   Two-sided markets (Over/Under) devig properly. One-sided markets —
+   many books post only "Yes" on anytime TD — cannot be devigged, so the
+   fair value is the median implied probability across books and is
+   flagged as approximate rather than quietly presented as exact. */
+function propLegs(gameId, mkey, c){
+  const ev = S.props[gameId] && S.props[gameId][mkey];
+  if(!ev) return [];
+  const idx={};
+  for(const bk of ev.bookmakers||[]){
+    const m=(bk.markets||[]).find(x=>x.key===mkey); if(!m) continue;
+    for(const o of m.outcomes||[]){
+      const who=o.description||o.name;
+      const k=`${who}||${o.point??''}`;
+      idx[k]=idx[k]||{};
+      idx[k][bk.key]=idx[k][bk.key]||{title:bk.title};
+      idx[k][bk.key][String(o.name).toLowerCase()]=o.price;
+    }
+  }
+  const out=[];
+  for(const [k,byBook] of Object.entries(idx)){
+    const [who,point]=k.split('||');
+    const entries=Object.entries(byBook);
+    const twoSided=entries.filter(([,v])=>isFinite(v.over)&&isFinite(v.under));
+    const sides = twoSided.length>=2
+      ? ['over','under'] : (entries.some(([,v])=>isFinite(v.yes)) ? ['yes'] : null);
+    if(!sides) continue;
+
+    if(sides.length===2){
+      const books=twoSided.map(([key,v])=>({key,title:v.title,
+        probs:[decToProb(amToDec(v.over)),decToProb(amToDec(v.under))],prices:[v.over,v.under]}));
+      const cons=consensusFair(books.map(b=>({key:b.key,probs:b.probs})),c.method);
+      if(!cons) return out;
+      ['Over','Under'].forEach((side,i)=>{
+        const mine=books.filter(b=>S.myBooks.includes(b.key));
+        const usable=mine.length?mine:books;
+        let best=null;
+        usable.forEach(b=>{const d=amToDec(b.prices[i]);
+          if(!best||d>best.dec) best={dec:d,price:b.prices[i],book:b.title,key:b.key};});
+        if(!best) return;
+        out.push({gameId, market:PROP_LABEL[mkey]||mkey, mkey,
+          sel:`${who} ${side} ${point}`, outIdx:i, pFair:cons.fair[i], approx:false, ...best,
+          ev:evPerUnit(cons.fair[i],best.dec)});
+      });
+    } else {
+      // one-sided: median implied across books, flagged approximate
+      const yes=entries.filter(([,v])=>isFinite(v.yes));
+      if(yes.length<2) continue;
+      const pApprox=median(yes.map(([,v])=>decToProb(amToDec(v.yes))));
+      const mine=yes.filter(([key])=>S.myBooks.includes(key));
+      const usable=mine.length?mine:yes;
+      let best=null;
+      usable.forEach(([key,v])=>{const d=amToDec(v.yes);
+        if(!best||d>best.dec) best={dec:d,price:v.yes,book:v.title,key};});
+      if(!best) continue;
+      out.push({gameId, market:PROP_LABEL[mkey]||mkey, mkey,
+        sel:`${who} ${point?point+' ':''}to score`, outIdx:0, pFair:pApprox, approx:true, ...best,
+        ev:evPerUnit(pApprox,best.dec)});
+    }
+  }
+  return out;
 }
 
 function buildParlay(){
   const c=cfg();
-  const nLegs=+$('#bl-legs').value, mkey=$('#bl-mkt').value, mode=$('#bl-mode').value;
+  const nLegs=+$('#bl-legs').value, mode=$('#bl-mode').value;
   if(!S.games.length){ msg('#bl-msg','err','Scan today\'s games first — the builder uses real prices, not guesses.'); return; }
 
-  const pool=[];
   const wanted = S.blGames.length ? S.games.filter(g=>S.blGames.includes(g.id)) : S.games;
+  const pool=[];
   for(const g of wanted){
-    const mkt=collectMarket(g,mkey); if(!mkt) continue;
-    const cons=consensusFair(mkt.books.map(b=>({key:b.key,probs:b.probs})),c.method);
-    if(!cons) continue;
-    // best price available at the user's own books only
-    const mine=mkt.books.filter(b=>S.myBooks.includes(b.key));
-    const usable=mine.length?mine:mkt.books;
-    mkt.labels.forEach((lab,i)=>{
-      let best=null;
-      usable.forEach(b=>{ const d=amToDec(b.prices[i]);
-        if(!best||d>best.dec) best={dec:d,price:b.prices[i],book:b.title,key:b.key}; });
-      if(!best) return;
-      pool.push({gameId:g.id, game:`${g.away_team} at ${g.home_team}`, commence:g.commence_time,
-        market:{h2h:'Moneyline',spreads:'Spread',totals:'Total'}[mkey], mkey,
-        sel:lab, outIdx:i, pFair:cons.fair[i], ...best,
-        ev:evPerUnit(cons.fair[i],best.dec), onlyMine:!!mine.length});
-    });
+    const meta={game:`${g.away_team} at ${g.home_team}`, commence:g.commence_time};
+    for(const mkey of S.blMarkets){
+      if(isProp(mkey)){
+        propLegs(g.id, mkey, c).forEach(l=>pool.push({...l, ...meta, gameId:g.id}));
+        continue;
+      }
+      const mkt=collectMarket(g,mkey); if(!mkt) continue;
+      const cons=consensusFair(mkt.books.map(b=>({key:b.key,probs:b.probs})),c.method);
+      if(!cons) continue;
+      const mine=mkt.books.filter(b=>S.myBooks.includes(b.key));
+      const usable=mine.length?mine:mkt.books;
+      mkt.labels.forEach((lab,i)=>{
+        let best=null;
+        usable.forEach(b=>{const d=amToDec(b.prices[i]);
+          if(!best||d>best.dec) best={dec:d,price:b.prices[i],book:b.title,key:b.key};});
+        if(!best) return;
+        pool.push({gameId:g.id, ...meta,
+          market:{h2h:'Moneyline',spreads:'Spread',totals:'Total'}[mkey], mkey,
+          sel:lab, outIdx:i, pFair:cons.fair[i], approx:false, ...best,
+          ev:evPerUnit(cons.fair[i],best.dec)});
+      });
+    }
   }
-  if(!pool.length){ msg('#bl-msg','err','No prices available for that market right now.'); return; }
+  if(!pool.length){
+    const propsPicked=S.blMarkets.filter(isProp).length;
+    msg('#bl-msg','err', propsPicked
+      ? 'No prices available. If you picked prop markets, load them first with the button above — props are not part of the board scan.'
+      : 'No prices available for those markets right now.');
+    return;
+  }
 
-  const sorters={
-    ev:(a,b)=>b.ev-a.ev,
-    fav:(a,b)=>b.pFair-a.pFair,
-    dog:(a,b)=>b.dec-a.dec
-  };
+  const sorters={ ev:(a,b)=>b.ev-a.ev, fav:(a,b)=>b.pFair-a.pFair, dog:(a,b)=>b.dec-a.dec };
   pool.sort(sorters[mode]);
 
-  // one leg per game — two legs from the same game are correlated and the
+  // one leg per game — legs from the same game move together and the
   // independence maths below would overstate the ticket's chances
   const picked=[], used=new Set();
   for(const p of pool){
@@ -1926,17 +2084,19 @@ function buildParlay(){
     picked.push(p); used.add(p.gameId);
     if(picked.length===nLegs) break;
   }
-  if(picked.length<nLegs){
-    msg('#bl-msg','warnbox',`Only ${picked.length} game${picked.length===1?'':'s'} available for that market, so the ticket is ${picked.length} leg${picked.length===1?'':'s'} instead of ${nLegs}. One leg per game keeps the maths honest.`);
-  } else {
-    const anyMine=picked.some(p=>p.onlyMine);
-    msg('#bl-msg','ok',`Built from ${picked.length} games${anyMine?' using your sportsbooks':''}. Scroll down for what it costs.`);
-  }
+  const nApprox=picked.filter(p=>p.approx).length;
+  const nProps=picked.filter(p=>isProp(p.mkey)).length;
+  let note='';
+  if(picked.length<nLegs) note=`Only ${picked.length} game${picked.length===1?'':'s'} had prices for those markets, so the ticket is ${picked.length} leg${picked.length===1?'':'s'} instead of ${nLegs}. One leg per game keeps the maths honest.`;
+  else note=`Built from ${picked.length} games${nProps?`, ${nProps} player prop${nProps===1?'':'s'}`:''}.`;
+  if(nApprox) note+=` ${nApprox} leg${nApprox===1?' uses an':'s use'} approximate fair value — those books post only one side, so the vig cannot be stripped out exactly. Treat that EV as a rough guide.`;
+  msg('#bl-msg', picked.length<nLegs?'warnbox':'ok', note);
+
   S.legs = picked.map(p=>({
-    desc:`${p.sel} — ${p.market}`, sub:`${p.game} · ${p.book} ${fmtAm(p.price)}`,
+    desc:`${p.sel} — ${p.market}`, sub:`${p.game} · ${p.book} ${fmtAm(p.price)}${p.approx?' · fair approx':''}`,
     decOffered:p.dec, pFair:p.pFair, price:p.price, gameId:p.gameId,
     game:p.game, market:p.market, mkey:p.mkey, sel:p.sel, outIdx:p.outIdx,
-    book:p.book, bookKey:p.key, dec:p.dec, commence:p.commence
+    book:p.book, bookKey:p.key, dec:p.dec, commence:p.commence, approx:p.approx
   }));
   renderLegs();
   setTimeout(()=>$('#parlay-out')?.scrollIntoView({behavior:'smooth',block:'start'}),60);
@@ -1944,6 +2104,7 @@ function buildParlay(){
 
 $('#bl-build').addEventListener('click',buildParlay);
 $('#bl-clearsel').addEventListener('click',()=>{ S.blGames=[]; renderBuilderGames(); msg('#bl-msg',''); });
+renderMarketChips();
 renderBuilderGames();
 
 /* ============================================================
