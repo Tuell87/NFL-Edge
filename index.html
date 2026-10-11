@@ -188,6 +188,7 @@ tr:hover td{background:var(--sunk)}
 .holdbar div{display:flex; align-items:center; justify-content:center; font-family:var(--mono); font-size:11px; color:#fff}
 .holdbar .keep{background:var(--pos)} .holdbar .house{background:var(--neg)}
 
+.builder{border:1px solid var(--rule-soft); border-radius:3px; padding:13px; background:var(--sunk); margin-bottom:4px}
 .empty{padding:28px 16px; text-align:center; color:var(--muted); font-size:14px}
 .err{background:var(--neg-bg); color:var(--neg); border:1px solid var(--neg); padding:10px 13px; margin-bottom:12px; border-radius:2px; font-size:13.5px}
 .ok{background:var(--pos-bg); color:var(--pos); border:1px solid var(--pos); padding:10px 13px; margin-bottom:12px; border-radius:2px; font-size:13.5px}
@@ -199,6 +200,75 @@ tr:hover td{background:var(--sunk)}
    Horizontal scroll hides the columns that matter (EV, stake) behind a
    swipe nobody discovers. Below 760px each row becomes its own block
    with the column name printed beside every value. */
+
+/* ---- bottom navigation, the five things used on a normal Sunday ---- */
+.bottomnav{display:none}
+.sheet{display:none}
+@media (max-width:760px){
+  .bottomnav{
+    display:grid; grid-template-columns:repeat(6,1fr);
+    position:fixed; left:0; right:0; bottom:0; z-index:40;
+    background:var(--surface); border-top:1px solid var(--rule);
+    padding-bottom:env(safe-area-inset-bottom,0px);
+  }
+  .bottomnav button{
+    background:none; border:0; padding:7px 2px 8px; cursor:pointer;
+    display:flex; flex-direction:column; align-items:center; gap:2px;
+    font-size:10px; line-height:1.15; color:var(--muted); font-weight:500;
+  }
+  .bottomnav button .ic{font-size:17px; line-height:1}
+  .bottomnav button[aria-current="true"]{color:var(--ref)}
+  nav.rail{display:none}                 /* top rail replaced on phones */
+  .wrap{padding-bottom:86px}
+  .sheet[hidden]{display:none}
+  .sheet{
+    display:block; position:fixed; inset:0; z-index:50;
+    background:rgba(0,0,0,.45);
+  }
+  .sheet-in{
+    position:absolute; left:0; right:0; bottom:0;
+    background:var(--surface); border-top:1px solid var(--rule);
+    border-radius:12px 12px 0 0; padding:14px 16px;
+    padding-bottom:calc(16px + env(safe-area-inset-bottom,0px));
+    max-height:82vh; overflow-y:auto;
+  }
+  .sheet-in h3{margin:2px 0 10px; font-size:14px}
+  .sheet-in button{
+    display:block; width:100%; text-align:left; background:var(--sunk);
+    border:1px solid var(--rule-soft); border-radius:3px;
+    padding:11px 13px; margin-bottom:7px; cursor:pointer;
+  }
+  .sheet-in button b{display:block; font-size:14.5px; font-weight:600}
+  .sheet-in button span{display:block; font-size:12px; color:var(--muted); margin-top:1px}
+  .sheet-in button.closer{text-align:center; background:none; font-weight:600; margin-top:4px}
+}
+
+/* ---- Start Here cards ---- */
+.step{
+  display:flex; gap:13px; align-items:flex-start;
+  padding:13px 0; border-bottom:1px solid var(--rule-soft);
+}
+.step:last-child{border-bottom:0}
+.step .n{
+  flex:0 0 26px; height:26px; border-radius:50%; background:var(--ref-bg);
+  color:var(--ref); display:flex; align-items:center; justify-content:center;
+  font-family:var(--mono); font-size:13px; font-weight:700;
+}
+.step .t{flex:1; min-width:0}
+.step .t h4{margin:1px 0 3px; font-size:14.5px; font-weight:600}
+.step .t p{margin:0 0 7px; font-size:13px; color:var(--muted); line-height:1.45}
+.step .t .btn{margin-top:2px}
+.step.done .n{background:var(--pos-bg); color:var(--pos)}
+
+/* ---- plain-English term, tap to expand ---- */
+details.term{border:1px solid var(--rule-soft); border-radius:3px; margin-bottom:7px; background:var(--sunk)}
+details.term summary{padding:9px 12px; cursor:pointer; font-weight:600; font-size:14px; list-style:none}
+details.term summary::-webkit-details-marker{display:none}
+details.term summary::after{content:"＋"; float:right; color:var(--muted); font-weight:400}
+details.term[open] summary::after{content:"－"}
+details.term .d{padding:0 12px 11px; font-size:13.5px; color:var(--muted); line-height:1.5}
+details.term .d b{color:var(--ink)}
+
 @media (max-width:760px){
   table.stack{display:block}
   table.stack tr:first-child{display:none}          /* header row */
@@ -257,21 +327,67 @@ tr:hover td{background:var(--sunk)}
   </div>
 
   <nav class="rail" role="tablist">
-    <button role="tab" aria-selected="true"  data-p="setup">Setup</button>
-    <button role="tab" aria-selected="false" data-p="board">Odds board</button>
-    <button role="tab" aria-selected="false" data-p="edges">Edges</button>
-    <button role="tab" aria-selected="false" data-p="mine">My books</button>
-    <button role="tab" aria-selected="false" data-p="arb">Arbitrage</button>
-    <button role="tab" aria-selected="false" data-p="props">Player props</button>
-    <button role="tab" aria-selected="false" data-p="parlay">Parlay lab</button>
-    <button role="tab" aria-selected="false" data-p="base">Base rates</button>
-    <button role="tab" aria-selected="false" data-p="clv">Bet log &amp; CLV</button>
-    <button role="tab" aria-selected="false" data-p="context">Injuries &amp; form</button>
-    <button role="tab" aria-selected="false" data-p="method">Method</button>
+    <button role="tab" aria-selected="true" data-p="home">Start Here</button>
+    <button role="tab" aria-selected="false" data-p="setup">Settings</button>
+    <button role="tab" aria-selected="false" data-p="board">Today's Games</button>
+    <button role="tab" aria-selected="false" data-p="edges">Best Prices</button>
+    <button role="tab" aria-selected="false" data-p="mine">My Sportsbooks</button>
+    <button role="tab" aria-selected="false" data-p="arb">Sure Bets</button>
+    <button role="tab" aria-selected="false" data-p="props">Player Props</button>
+    <button role="tab" aria-selected="false" data-p="parlay">Parlay Builder</button>
+    <button role="tab" aria-selected="false" data-p="base">Reality Check</button>
+    <button role="tab" aria-selected="false" data-p="clv">My Bets</button>
+    <button role="tab" aria-selected="false" data-p="context">Injuries</button>
+    <button role="tab" aria-selected="false" data-p="method">How It Works</button>
   </nav>
 
+  <!-- ============ START HERE ============ -->
+  <section class="panel on" id="p-home">
+    <div class="card">
+      <h2>What to do today <span class="sub">in order</span></h2>
+      <div class="body"><div id="steps"></div></div>
+    </div>
+
+    <div class="card">
+      <h2>What this app is for <span class="sub">read once</span></h2>
+      <div class="body">
+        <p class="note">Sportsbooks do not all post the same price on the same game. This app reads 16 of them at once, works out what the price <em>should</em> be, and shows you where a book is out of line. That gap is the only thing it claims to find.</p>
+        <p class="note">It does <b>not</b> predict who wins. Nothing does, reliably — the Reality Check screen proves it with 7,000 real games. Anyone selling you picks is selling you noise.</p>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>The words, in plain English <span class="sub">tap any to open</span></h2>
+      <div class="body">
+        <details class="term"><summary>Price / odds</summary><div class="d">
+          <b>−150</b> means risk $150 to win $100. <b>+150</b> means risk $100 to win $150. Minus is the favourite, plus is the underdog. Bigger number = further from a coin flip.</div></details>
+
+        <details class="term"><summary>Hold (the book's cut)</summary><div class="d">
+          Every market is priced so the book keeps a slice no matter who wins. On a normal −110/−110 game line that slice is about <b>4.5%</b>. It is the house edge, same idea as the rake in poker. Lower hold = better market for you.</div></details>
+
+        <details class="term"><summary>Fair price</summary><div class="d">
+          The price with the book's cut stripped out — what a book charging nothing would post. If a game is truly 50/50, the fair price is <b>+100</b> on both sides, even though every book shows you −110. Working this out is called <b>devigging</b>. You never see fair prices in a sportsbook app; that's rather the point.</div></details>
+
+        <details class="term"><summary>EV (expected value)</summary><div class="d">
+          How much you make or lose per $1 bet, on average, if you made the same bet thousands of times. <b>+2%</b> means you'd expect $1.02 back per $1 long run. <b>−4.5%</b> is what a normal bet at one book returns — which is why most betting loses slowly.<br><br>Positive EV here means <b>the price is out of line with the other 15 books</b>. It does not mean the bet will win.</div></details>
+
+        <details class="term"><summary>Stake / Kelly</summary><div class="d">
+          How much to bet. Kelly is a formula that sizes a bet to the size of your edge — bigger edge, bigger bet. Full Kelly grows fastest but swings hard, so the app uses <b>quarter Kelly</b> and caps any single bet at a set % of your bankroll. If the suggested stake looks small, that's the maths telling you the edge is small.</div></details>
+
+        <details class="term"><summary>CLV (closing line value)</summary><div class="d">
+          Did you get a better price than the number the game closed at? The closing line is the sharpest price that ever exists, so beating it regularly is the earliest sign you're doing something right.<br><br><b>Why it matters:</b> wins and losses take hundreds of bets to mean anything. CLV tells you in dozens. Beat the close and profit follows; lose to it and no hot streak saves you.</div></details>
+
+        <details class="term"><summary>Sure bet (arbitrage)</summary><div class="d">
+          Two books disagree enough that you can back <b>both sides</b> and profit whichever way it goes. Real but rare, small, and gone in a minute. Books limit accounts that hit them often.</div></details>
+
+        <details class="term"><summary>Why parlays are priced badly</summary><div class="d">
+          The book's cut applies to <em>every leg</em> and the cuts multiply. One bet at −110 costs you 4.5%. Five of them parlayed costs you <b>20.8%</b>. The payout looks big because the odds of winning got small — faster than the payout grew. The Parlay Builder prints the real number on every ticket.</div></details>
+      </div>
+    </div>
+  </section>
+
   <!-- ============ SETUP ============ -->
-  <section class="panel on" id="p-setup">
+  <section class="panel" id="p-setup">
     <div class="card">
       <h2>Connection <span class="sub">your key stays in this browser, in localStorage — it is never sent anywhere but the odds provider</span></h2>
       <div class="body">
@@ -442,7 +558,36 @@ tr:hover td{background:var(--sunk)}
       <span class="sub">what the ticket actually costs you</span></h2>
       <div class="body">
         <p class="note">A parlay does not add risk, it multiplies margin. Every leg carries the book's hold, and the holds compound. This tool prices your ticket against what a zero-margin book would pay, and compares it to betting the same legs one at a time.</p>
-        <div class="row">
+        <div class="builder">
+          <h4 style="margin:0 0 4px;font-size:14px">Build one from today's board</h4>
+          <p class="note" style="margin-bottom:10px">Picks the best-priced selections at your sportsbooks. It will not pretend the result is a good bet — it shows you what the ticket actually costs.</p>
+          <div class="grid" style="margin-bottom:10px">
+            <label class="f"><span>How many legs</span>
+              <select id="bl-legs"><option>2</option><option selected>3</option><option>4</option><option>5</option><option>6</option></select></label>
+            <label class="f"><span>Market</span>
+              <select id="bl-mkt">
+                <option value="h2h">Moneyline — who wins</option>
+                <option value="spreads">Spread — who covers</option>
+                <option value="totals">Total — over or under</option>
+              </select></label>
+            <label class="f"><span>Choose legs by</span>
+              <select id="bl-mode">
+                <option value="ev">Best price vs the market</option>
+                <option value="fav">Most likely to win</option>
+                <option value="dog">Biggest payout</option>
+              </select></label>
+          </div>
+          <div style="margin-bottom:8px">
+            <span style="font-size:12.5px;color:var(--muted);display:block;margin-bottom:5px">Games to choose from — none selected means all of them</span>
+            <div class="chips" id="bl-games"></div>
+          </div>
+          <div class="row">
+            <button class="btn" id="bl-build">Build parlay</button>
+            <button class="btn ghost sm" id="bl-clearsel">Clear game picks</button>
+          </div>
+          <div id="bl-msg" style="margin-top:10px"></div>
+        </div>
+        <div class="row" style="margin-top:14px">
           <button class="btn ghost sm" id="addleg">Add leg manually</button>
           <button class="btn ghost sm" id="demo5">Load 5 coin-flips at −110</button>
           <button class="btn ghost sm" id="clearlegs">Clear</button>
@@ -545,6 +690,28 @@ tr:hover td{background:var(--sunk)}
   </section>
 </div>
 
+<nav class="bottomnav" id="bottomnav">
+  <button data-p="home"><span class="ic">◉</span>Start</button>
+  <button data-p="board"><span class="ic">▦</span>Games</button>
+  <button data-p="edges"><span class="ic">◆</span>Best Prices</button>
+  <button data-p="parlay"><span class="ic">⛓</span>Parlay</button>
+  <button data-p="clv"><span class="ic">▤</span>My Bets</button>
+  <button id="morebtn"><span class="ic">⋯</span>More</button>
+</nav>
+<div class="sheet" id="moresheet" hidden>
+  <div class="sheet-in">
+    <h3>Everything else</h3>
+    <button data-p="mine"><b>My Sportsbooks</b><span>Compare FanDuel vs DraftKings</span></button>
+    <button data-p="props"><b>Player Props</b><span>Touchdowns, yards, receptions</span></button>
+    <button data-p="arb"><b>Sure Bets</b><span>Both sides, guaranteed profit</span></button>
+    <button data-p="base"><b>Reality Check</b><span>What actually wins, 1999–now</span></button>
+    <button data-p="context"><b>Injuries</b><span>Who's out this week</span></button>
+    <button data-p="settings-alias" data-real="setup"><b>Settings</b><span>Key, bankroll, sportsbooks</span></button>
+    <button data-p="method"><b>How It Works</b><span>Plain-English glossary</span></button>
+    <button id="sheetclose" class="closer">Close</button>
+  </div>
+</div>
+
 <script>
 /* ============================================================
    SECTION 1 — pricing math (unit-tested separately in core.js)
@@ -639,7 +806,7 @@ function parseCSV(text){
 /* ============================================================
    SECTION 2 — state, storage, small DOM helpers
    ============================================================ */
-const BUILD='r5';            // bump on every release — shown in the header
+const BUILD='r6';            // bump on every release — shown in the header
 const S={key:'',regions:['us'],games:[],legs:[],quota:null,scanned:null,history:null};
 const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
 const el=(t,c,h)=>{const n=document.createElement(t); if(c)n.className=c; if(h!=null)n.innerHTML=h; return n;};
@@ -675,12 +842,26 @@ function stack(t){
 /* ============================================================
    SECTION 3 — tabs
    ============================================================ */
-$$('nav.rail button').forEach(b=>b.addEventListener('click',()=>{
-  $$('nav.rail button').forEach(x=>x.setAttribute('aria-selected',String(x===b)));
+function showPanel(id){
   $$('.panel').forEach(p=>p.classList.remove('on'));
-  $('#p-'+b.dataset.p).classList.add('on');
+  const target=$('#p-'+id); if(!target) return;
+  target.classList.add('on');
+  $$('nav.rail button').forEach(x=>x.setAttribute('aria-selected',String(x.dataset.p===id)));
+  $$('.bottomnav button').forEach(x=>x.setAttribute('aria-current',String(x.dataset.p===id)));
+  $('#moresheet').hidden=true;
   window.scrollTo({top:0,behavior:'instant'});
-}));
+}
+$$('nav.rail button').forEach(b=>b.addEventListener('click',()=>showPanel(b.dataset.p)));
+$$('.bottomnav button[data-p]').forEach(b=>b.addEventListener('click',()=>showPanel(b.dataset.p)));
+$$('#moresheet button[data-p]').forEach(b=>b.addEventListener('click',()=>
+  showPanel(b.dataset.real||b.dataset.p)));
+$('#morebtn').addEventListener('click',()=>{ $('#moresheet').hidden=false; });
+$('#sheetclose').addEventListener('click',()=>{ $('#moresheet').hidden=true; });
+$('#moresheet').addEventListener('click',e=>{ if(e.target.id==='moresheet') $('#moresheet').hidden=true; });
+// anything with data-go jumps to a tab — used by the Start Here steps
+document.addEventListener('click',e=>{
+  const g=e.target.closest('[data-go]'); if(g) showPanel(g.dataset.go);
+});
 
 /* ============================================================
    SECTION 4 — setup: key, regions, connection test
@@ -729,7 +910,7 @@ $('#save').addEventListener('click',async()=>{
     if(!r.ok){msg('#setup-msg','err',`Provider returned ${r.status}. Try again in a moment.`);return;}
     const sports=await r.json();
     readQuota(r);
-    S.key=k; store('oddskey',k);
+    S.key=k; store('oddskey',k); renderSteps();
     const nfl=sports.find(s=>s.key==='americanfootball_nfl');
     msg('#setup-msg','ok',`Connected. ${sports.length} leagues live. NFL is ${nfl?'<b>in season</b> — go to the Odds board':'not currently listed'}. The /sports check you just ran is free; it does not spend credits.`);
     updateQuota();
@@ -767,7 +948,7 @@ async function scanBoard(){
     S.games=games; S.scanned=new Date();
     captureCloses();
     msg('#board-msg','');
-    renderBoard(); renderEdges(); renderMine(); renderArb(); fillPropGames();
+    renderBoard(); renderEdges(); renderMine(); renderArb(); fillPropGames(); renderSteps(); renderBuilderGames();
   }catch(e){ msg('#board-msg','err','Network request failed. Check your connection.'); }
 }
 
@@ -1493,7 +1674,7 @@ function logBet(r){
     price: r.price, dec: r.dec, pFairAtBet: r.pFair,
     stake, close: null, result: null
   });
-  saveBets(); renderCLV();
+  saveBets(); renderCLV(); renderSteps();
 }
 
 /* Re-read every open bet's price from the current scan. */
@@ -1528,7 +1709,7 @@ function captureCloses(){
     };
     n++;
   }
-  if(n){ saveBets(); renderCLV(); }
+  if(n){ saveBets(); renderCLV(); renderSteps(); }
 }
 
 /* CLV on a price basis: how much more payout you locked than the close.
@@ -1670,6 +1851,143 @@ renderCLV();
 
 // static tables present in the markup (Method tab) get labelled too
 document.querySelectorAll('#p-method table').forEach(stack);
+
+/* ============================================================
+   SECTION 15 — parlay builder
+
+   Assembles legs from real scanned prices. Three selection modes,
+   one leg per game at most (two legs from one game are correlated
+   and the independence maths underneath would lie about them).
+
+   This builds and prices a ticket. It does not recommend one —
+   almost every parlay it produces will be negative EV, and it
+   says so rather than burying it.
+   ============================================================ */
+S.blGames = [];
+
+function renderBuilderGames(){
+  const host=$('#bl-games'); if(!host) return;
+  if(!S.games.length){
+    host.innerHTML='<span style="color:var(--muted);font-size:13px">Scan today\'s games first.</span>';
+    return;
+  }
+  host.innerHTML='';
+  S.games.forEach(g=>{
+    const c=el('button','chip',`${esc(g.away_team)} @ ${esc(g.home_team)}`);
+    c.setAttribute('aria-pressed',String(S.blGames.includes(g.id)));
+    c.addEventListener('click',()=>{
+      const on=c.getAttribute('aria-pressed')==='true';
+      c.setAttribute('aria-pressed',String(!on));
+      S.blGames = on ? S.blGames.filter(x=>x!==g.id) : S.blGames.concat([g.id]);
+    });
+    host.appendChild(c);
+  });
+}
+
+function buildParlay(){
+  const c=cfg();
+  const nLegs=+$('#bl-legs').value, mkey=$('#bl-mkt').value, mode=$('#bl-mode').value;
+  if(!S.games.length){ msg('#bl-msg','err','Scan today\'s games first — the builder uses real prices, not guesses.'); return; }
+
+  const pool=[];
+  const wanted = S.blGames.length ? S.games.filter(g=>S.blGames.includes(g.id)) : S.games;
+  for(const g of wanted){
+    const mkt=collectMarket(g,mkey); if(!mkt) continue;
+    const cons=consensusFair(mkt.books.map(b=>({key:b.key,probs:b.probs})),c.method);
+    if(!cons) continue;
+    // best price available at the user's own books only
+    const mine=mkt.books.filter(b=>S.myBooks.includes(b.key));
+    const usable=mine.length?mine:mkt.books;
+    mkt.labels.forEach((lab,i)=>{
+      let best=null;
+      usable.forEach(b=>{ const d=amToDec(b.prices[i]);
+        if(!best||d>best.dec) best={dec:d,price:b.prices[i],book:b.title,key:b.key}; });
+      if(!best) return;
+      pool.push({gameId:g.id, game:`${g.away_team} at ${g.home_team}`, commence:g.commence_time,
+        market:{h2h:'Moneyline',spreads:'Spread',totals:'Total'}[mkey], mkey,
+        sel:lab, outIdx:i, pFair:cons.fair[i], ...best,
+        ev:evPerUnit(cons.fair[i],best.dec), onlyMine:!!mine.length});
+    });
+  }
+  if(!pool.length){ msg('#bl-msg','err','No prices available for that market right now.'); return; }
+
+  const sorters={
+    ev:(a,b)=>b.ev-a.ev,
+    fav:(a,b)=>b.pFair-a.pFair,
+    dog:(a,b)=>b.dec-a.dec
+  };
+  pool.sort(sorters[mode]);
+
+  // one leg per game — two legs from the same game are correlated and the
+  // independence maths below would overstate the ticket's chances
+  const picked=[], used=new Set();
+  for(const p of pool){
+    if(used.has(p.gameId)) continue;
+    picked.push(p); used.add(p.gameId);
+    if(picked.length===nLegs) break;
+  }
+  if(picked.length<nLegs){
+    msg('#bl-msg','warnbox',`Only ${picked.length} game${picked.length===1?'':'s'} available for that market, so the ticket is ${picked.length} leg${picked.length===1?'':'s'} instead of ${nLegs}. One leg per game keeps the maths honest.`);
+  } else {
+    const anyMine=picked.some(p=>p.onlyMine);
+    msg('#bl-msg','ok',`Built from ${picked.length} games${anyMine?' using your sportsbooks':''}. Scroll down for what it costs.`);
+  }
+  S.legs = picked.map(p=>({
+    desc:`${p.sel} — ${p.market}`, sub:`${p.game} · ${p.book} ${fmtAm(p.price)}`,
+    decOffered:p.dec, pFair:p.pFair, price:p.price, gameId:p.gameId,
+    game:p.game, market:p.market, mkey:p.mkey, sel:p.sel, outIdx:p.outIdx,
+    book:p.book, bookKey:p.key, dec:p.dec, commence:p.commence
+  }));
+  renderLegs();
+  setTimeout(()=>$('#parlay-out')?.scrollIntoView({behavior:'smooth',block:'start'}),60);
+}
+
+$('#bl-build').addEventListener('click',buildParlay);
+$('#bl-clearsel').addEventListener('click',()=>{ S.blGames=[]; renderBuilderGames(); msg('#bl-msg',''); });
+renderBuilderGames();
+
+/* ============================================================
+   SECTION 14 — Start Here
+
+   The steps reflect real state: whether a key is saved, whether a
+   scan has run, whether bets are open. Each one is a button that
+   goes to the screen it describes, so "which tab do I use" stops
+   being a question the user has to answer.
+   ============================================================ */
+function renderSteps(){
+  const host=$('#steps'); if(!host) return;
+  const hasKey=!!S.key, scanned=!!S.games.length, open=S.bets.filter(b=>!b.result).length;
+  const mins=S.scanned?Math.round((Date.now()-S.scanned)/60000):null;
+  const steps=[
+    { done:hasKey, n:1, h:'Connect your sportsbook data',
+      p: hasKey ? `Connected. ${S.quota?S.quota.remaining+' credits left this month.':''}`
+                : 'Paste your free API key so the app can read live prices.',
+      go:'setup', b: hasKey?'Change settings':'Go to Settings' },
+    { done:scanned, n:2, h:"Pull today's prices",
+      p: scanned ? `${S.games.length} games loaded${mins!=null?`, ${mins===0?'just now':mins+' min ago'}`:''}. Costs nothing to look again — move between screens freely.`
+                 : 'One scan reads all 16 books. Costs 6 credits of your 500.',
+      go:'board', b: scanned?"See today's games":'Scan now' },
+    { done:scanned, n:3, h:'See where a book is out of line',
+      p: scanned ? `${$('#r-edges')?.textContent||'0'} prices beat the market right now. Check My Sportsbooks to see only FanDuel and DraftKings.`
+                 : 'After scanning, this lists every price that beats the market.',
+      go:'edges', b:'Best Prices' },
+    { done:false, n:4, h:'Build a parlay, see what it really costs',
+      p:'Pick games or let it choose. It shows the true price against the fair price, so you know the cut before you bet it.',
+      go:'parlay', b:'Parlay Builder' },
+    { done:open>0, n:5, h:'Log what you bet',
+      p: open>0 ? `${open} open bet${open===1?'':'s'}. Scan again near kickoff so the app can capture the closing price.`
+                : 'Logging bets is how the app tells you whether you are actually good at this.',
+      go:'clv', b:'My Bets' }
+  ];
+  host.innerHTML='';
+  steps.forEach(st=>{
+    host.appendChild(el('div','step'+(st.done?' done':''),
+      `<div class="n">${st.done?'✓':st.n}</div>
+       <div class="t"><h4>${esc(st.h)}</h4><p>${st.p}</p>
+       <button class="btn ghost sm" data-go="${st.go}">${esc(st.b)} →</button></div>`));
+  });
+}
+renderSteps();
 
 /* re-render on config change */
 ['bankroll','kellymult','cap','minev','devigm','refmode'].forEach(id=>
