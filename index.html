@@ -188,6 +188,17 @@ tr:hover td{background:var(--sunk)}
 .holdbar div{display:flex; align-items:center; justify-content:center; font-family:var(--mono); font-size:11px; color:#fff}
 .holdbar .keep{background:var(--pos)} .holdbar .house{background:var(--neg)}
 
+.ticket{border:1px solid var(--rule); border-radius:3px; background:var(--surface); margin-top:10px}
+.ticket.active{border-color:var(--ref); box-shadow:0 0 0 1px var(--ref)}
+.ticket .th{display:flex; justify-content:space-between; align-items:baseline; gap:10px;
+  padding:9px 12px; border-bottom:1px solid var(--rule-soft); flex-wrap:wrap}
+.ticket .th b{font-size:14px}
+.ticket .th .px{font-family:var(--mono); font-size:13px}
+.ticket ul{list-style:none; margin:0; padding:8px 12px; font-size:13px}
+.ticket li{padding:3px 0; display:flex; justify-content:space-between; gap:10px}
+.ticket li span:last-child{font-family:var(--mono); color:var(--muted); white-space:nowrap}
+.ticket .tf{display:flex; justify-content:space-between; align-items:center; gap:10px;
+  padding:8px 12px; border-top:1px solid var(--rule-soft); font-size:12.5px; flex-wrap:wrap}
 .builder{border:1px solid var(--rule-soft); border-radius:3px; padding:13px; background:var(--sunk); margin-bottom:4px}
 .empty{padding:28px 16px; text-align:center; color:var(--muted); font-size:14px}
 .err{background:var(--neg-bg); color:var(--neg); border:1px solid var(--neg); padding:10px 13px; margin-bottom:12px; border-radius:2px; font-size:13.5px}
@@ -594,9 +605,19 @@ details.term .d b{color:var(--ink)}
           <div id="bl-propbar" hidden style="margin-bottom:10px"></div>
           <div class="row">
             <button class="btn" id="bl-build">Build parlay</button>
+            <button class="btn ghost" id="bl-another" disabled>Build another</button>
+          </div>
+          <div class="row" style="margin-top:8px">
+            <label class="f" style="margin:0;max-width:300px"><span>Each new ticket must change</span>
+              <select id="bl-diff">
+                <option value="1" selected>At least 1 leg</option>
+                <option value="2">At least 2 legs</option>
+                <option value="all">Every leg</option>
+              </select></label>
             <button class="btn ghost sm" id="bl-clearsel">Clear game picks</button>
           </div>
           <div id="bl-msg" style="margin-top:10px"></div>
+          <div id="bl-tickets"></div>
         </div>
         <div class="row" style="margin-top:14px">
           <button class="btn ghost sm" id="addleg">Add leg manually</button>
@@ -817,7 +838,7 @@ function parseCSV(text){
 /* ============================================================
    SECTION 2 — state, storage, small DOM helpers
    ============================================================ */
-const BUILD='r7';            // bump on every release — shown in the header
+const BUILD='r9';            // bump on every release — shown in the header
 const S={key:'',regions:['us'],games:[],legs:[],quota:null,scanned:null,history:null};
 const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
 const el=(t,c,h)=>{const n=document.createElement(t); if(c)n.className=c; if(h!=null)n.innerHTML=h; return n;};
@@ -2011,7 +2032,7 @@ function propLegs(gameId, mkey, c){
         usable.forEach(b=>{const d=amToDec(b.prices[i]);
           if(!best||d>best.dec) best={dec:d,price:b.prices[i],book:b.title,key:b.key};});
         if(!best) return;
-        out.push({gameId, market:PROP_LABEL[mkey]||mkey, mkey,
+        out.push({gameId, market:PROP_LABEL[mkey]||mkey, mkey, who,
           sel:`${who} ${side} ${point}`, outIdx:i, pFair:cons.fair[i], approx:false, ...best,
           ev:evPerUnit(cons.fair[i],best.dec)});
       });
@@ -2026,7 +2047,7 @@ function propLegs(gameId, mkey, c){
       usable.forEach(([key,v])=>{const d=amToDec(v.yes);
         if(!best||d>best.dec) best={dec:d,price:v.yes,book:v.title,key};});
       if(!best) continue;
-      out.push({gameId, market:PROP_LABEL[mkey]||mkey, mkey,
+      out.push({gameId, market:PROP_LABEL[mkey]||mkey, mkey, who,
         sel:`${who} ${point?point+' ':''}to score`, outIdx:0, pFair:pApprox, approx:true, ...best,
         ev:evPerUnit(pApprox,best.dec)});
     }
@@ -2034,11 +2055,17 @@ function propLegs(gameId, mkey, c){
   return out;
 }
 
-function buildParlay(){
-  const c=cfg();
-  const nLegs=+$('#bl-legs').value, mode=$('#bl-mode').value;
-  if(!S.games.length){ msg('#bl-msg','err','Scan today\'s games first — the builder uses real prices, not guesses.'); return; }
+/* What makes two picks "the same" for variety purposes. Excluding the exact
+   selection would let ticket 2 take the other side of the same game or the
+   Under on the same player, which is not a different ticket in any useful
+   sense. So variety is enforced on the subject: a game's market, or a
+   player's prop. */
+function subjectOf(p){
+  if(isProp(p.mkey)) return `${p.gameId}|${p.mkey}|${p.who||p.sel}`;
+  return `${p.gameId}|${p.mkey}`;
+}
 
+function builderPool(c){
   const wanted = S.blGames.length ? S.games.filter(g=>S.blGames.includes(g.id)) : S.games;
   const pool=[];
   for(const g of wanted){
@@ -2065,6 +2092,74 @@ function buildParlay(){
       });
     }
   }
+  return pool;
+}
+
+function legScore(p, mode){
+  if(mode==='fav') return Math.log(Math.max(p.pFair,1e-9));   // product of chances
+  if(mode==='dog') return Math.log(p.dec);                     // product of payouts
+  return p.ev;                                                 // best price vs market
+}
+const selKey = l => subjectOf(l)+'='+l.sel;
+const ticketKey = legs => legs.map(selKey).sort().join(' & ');
+
+/* Highest-scoring ticket that is a genuinely different parlay.
+   Constraints: one leg per game; and against EVERY saved ticket, at least
+   `minDiff` legs must be on a subject that ticket doesn't contain. Legs may
+   repeat across tickets — the ticket as a whole has to differ.
+
+   A side flip (Eagles ML -> Jaguars ML) is not counted as a change, since
+   it's the same subject; it would also mean two tickets betting against
+   each other. Branch-and-bound with a node budget, so it always answers
+   quickly on a phone. */
+function searchTicket(pool, nLegs, mode, saved, minDiff){
+  const opts=pool.map(p=>({p,s:legScore(p,mode),subj:subjectOf(p)})).sort((x,y)=>y.s-x.s);
+  const perGame={}, cand=[], cap=nLegs>=5?28:40;
+  for(const o of opts){
+    perGame[o.p.gameId]=(perGame[o.p.gameId]||0)+1;
+    if(perGame[o.p.gameId]<=4) cand.push(o);
+    if(cand.length>=cap) break;
+  }
+  const savedSets=saved.map(t=>new Set(t.legs.map(subjectOf)));
+  const need=Math.min(minDiff,nLegs), n=cand.length;
+  const bound=(i,k)=>{ let b=0,c=0; for(let j=i;j<n&&c<k;j++,c++) b+=cand[j].s; return c<k?-Infinity:b; };
+  let best=null, bestScore=-Infinity, nodes=0;
+  const chosen=[], usedG=new Set();
+  const valid=()=>savedSets.every(set=>chosen.filter(o=>!set.has(o.subj)).length>=need);
+  (function dfs(i,score){
+    if(++nodes>150000) return;
+    const left=nLegs-chosen.length;
+    if(!left){ if(score>bestScore&&valid()){ bestScore=score; best=chosen.map(o=>o.p); } return; }
+    for(let j=i;j<n;j++){
+      const o=cand[j];
+      if(score+o.s+bound(j+1,left-1)<=bestScore) break;     // sorted: nothing later can win
+      if(usedG.has(o.p.gameId)) continue;
+      chosen.push(o); usedG.add(o.p.gameId);
+      dfs(j+1,score+o.s);
+      chosen.pop(); usedG.delete(o.p.gameId);
+    }
+  })(0,0);
+  return best;
+}
+
+S.blTickets = load('parlay_tickets', []);
+S.blActive = S.blTickets.length ? S.blTickets.length-1 : -1;
+const saveTickets = () => store('parlay_tickets', S.blTickets);
+
+function toLeg(p){
+  return { desc:`${p.sel} — ${p.market}`,
+    sub:`${p.game} · ${p.book} ${fmtAm(p.price)}${p.approx?' · fair approx':''}`,
+    decOffered:p.dec, pFair:p.pFair, price:p.price, gameId:p.gameId,
+    game:p.game, market:p.market, mkey:p.mkey, sel:p.sel, outIdx:p.outIdx, who:p.who,
+    book:p.book, bookKey:p.key, dec:p.dec, commence:p.commence, approx:p.approx };
+}
+
+function buildParlay(another){
+  const c=cfg();
+  const nLegs=+$('#bl-legs').value, mode=$('#bl-mode').value;
+  if(!S.games.length){ msg('#bl-msg','err','Scan today\'s games first — the builder uses real prices, not guesses.'); return; }
+
+  let pool=builderPool(c);
   if(!pool.length){
     const propsPicked=S.blMarkets.filter(isProp).length;
     msg('#bl-msg','err', propsPicked
@@ -2073,36 +2168,119 @@ function buildParlay(){
     return;
   }
 
-  const sorters={ ev:(a,b)=>b.ev-a.ev, fav:(a,b)=>b.pFair-a.pFair, dog:(a,b)=>b.dec-a.dec };
-  pool.sort(sorters[mode]);
-
-  // one leg per game — legs from the same game move together and the
-  // independence maths below would overstate the ticket's chances
-  const picked=[], used=new Set();
-  for(const p of pool){
-    if(used.has(p.gameId)) continue;
-    picked.push(p); used.add(p.gameId);
-    if(picked.length===nLegs) break;
+  // "Build another" makes a variation series, so it never takes the other
+  // side of a leg already on a saved ticket — the tickets would bet against
+  // each other. A fresh "Build parlay" isn't restricted; it just warns.
+  let held=0;
+  if(another){
+    const locked=new Map();
+    S.blTickets.forEach(t=>t.legs.forEach(l=>locked.set(subjectOf(l),l.sel)));
+    const before=pool.length;
+    pool=pool.filter(p=>{ const sel=locked.get(subjectOf(p)); return sel===undefined||sel===p.sel; });
+    held=before-pool.length;
   }
-  const nApprox=picked.filter(p=>p.approx).length;
-  const nProps=picked.filter(p=>isProp(p.mkey)).length;
-  let note='';
-  if(picked.length<nLegs) note=`Only ${picked.length} game${picked.length===1?'':'s'} had prices for those markets, so the ticket is ${picked.length} leg${picked.length===1?'':'s'} instead of ${nLegs}. One leg per game keeps the maths honest.`;
-  else note=`Built from ${picked.length} games${nProps?`, ${nProps} player prop${nProps===1?'':'s'}`:''}.`;
-  if(nApprox) note+=` ${nApprox} leg${nApprox===1?' uses an':'s use'} approximate fair value — those books post only one side, so the vig cannot be stripped out exactly. Treat that EV as a rough guide.`;
-  msg('#bl-msg', picked.length<nLegs?'warnbox':'ok', note);
 
-  S.legs = picked.map(p=>({
-    desc:`${p.sel} — ${p.market}`, sub:`${p.game} · ${p.book} ${fmtAm(p.price)}${p.approx?' · fair approx':''}`,
-    decOffered:p.dec, pFair:p.pFair, price:p.price, gameId:p.gameId,
-    game:p.game, market:p.market, mkey:p.mkey, sel:p.sel, outIdx:p.outIdx,
-    book:p.book, bookKey:p.key, dec:p.dec, commence:p.commence, approx:p.approx
-  }));
-  renderLegs();
-  setTimeout(()=>$('#parlay-out')?.scrollIntoView({behavior:'smooth',block:'start'}),60);
+  const nGames=new Set(pool.map(p=>p.gameId)).size;
+  const nEff=Math.min(nLegs,nGames);
+  const diffSel=$('#bl-diff').value;
+  const minDiff=diffSel==='all'?nEff:+diffSel;
+  const picked=searchTicket(pool, nEff, mode, another?S.blTickets:[], another?minDiff:0);
+
+  if(!picked){
+    msg('#bl-msg','warnbox',`No more distinct tickets that change ${diffSel==='all'?'every leg':`at least ${minDiff} leg${minDiff===1?'':'s'}`} from all ${S.blTickets.length} saved. Lower “Each new ticket must change”, add games or markets, or delete some tickets.`);
+    return;
+  }
+
+  const legs=picked.map(toLeg);
+  const key=ticketKey(legs);
+  const dup=S.blTickets.findIndex(t=>ticketKey(t.legs)===key);
+  if(dup>=0){
+    S.blActive=dup; S.legs=legs.map(l=>({...l}));
+    msg('#bl-msg','ok',`That's already saved as Ticket ${dup+1}. Use Build another for a different one.`);
+    renderTickets(); renderLegs(); return;
+  }
+
+  // how different is it from the closest earlier ticket?
+  let closest=null;
+  S.blTickets.forEach((t,i)=>{
+    const set=new Set(t.legs.map(subjectOf));
+    const changed=legs.filter(l=>!set.has(subjectOf(l))).length;
+    if(!closest||changed<closest.changed) closest={i,changed};
+  });
+
+  // contradiction check against saved tickets (only reachable on a fresh build)
+  const against=[];
+  S.blTickets.forEach((t,i)=>t.legs.forEach(l=>legs.forEach(n=>{
+    if(subjectOf(l)===subjectOf(n)&&l.sel!==n.sel) against.push(i+1);
+  })));
+
+  S.blTickets.push({legs, at:new Date().toISOString(), mode});
+  S.blActive=S.blTickets.length-1;
+  S.legs=legs.map(l=>({...l}));
+  saveTickets();
+
+  const n=S.blTickets.length;
+  const nApprox=legs.filter(l=>l.approx).length, nProps=legs.filter(l=>isProp(l.mkey)).length;
+  let note = nEff<nLegs
+    ? `Ticket ${n}: only ${nEff} game${nEff===1?'':'s'} available, so it's ${nEff} leg${nEff===1?'':'s'} instead of ${nLegs}. One leg per game keeps the maths honest.`
+    : `Ticket ${n}: ${legs.length} legs${nProps?`, ${nProps} player prop${nProps===1?'':'s'}`:''}.`;
+  if(closest) note+=` ${closest.changed} of ${legs.length} leg${legs.length===1?'':'s'} different from Ticket ${closest.i+1}, the closest earlier one.`;
+  if(another&&mode==='ev'&&n>1) note+=' In best-price mode each new ticket is the next-best combination, so later ones are measurably worse — not equal alternatives.';
+  if(held) note+=` Skipped ${held} pick${held===1?'':'s'} that would bet against a leg already on a saved ticket.`;
+  if(against.length) note+=` <b>Heads up:</b> this ticket takes the other side of a leg on Ticket ${[...new Set(against)].join(', ')}. Play both and one is guaranteed to lose that leg.`;
+  if(nApprox) note+=` ${nApprox} leg${nApprox===1?' uses an':'s use'} approximate fair value — that book posts only one side, so the vig cannot be stripped out exactly.`;
+  msg('#bl-msg', (nEff<nLegs||against.length)?'warnbox':'ok', note);
+
+  $('#bl-another').disabled=false;
+  renderTickets(); renderLegs();
+  setTimeout(()=>$('#bl-tickets .ticket.active')?.scrollIntoView({behavior:'smooth',block:'nearest'}),60);
 }
 
-$('#bl-build').addEventListener('click',buildParlay);
+function resetTickets(){
+  S.blTickets=[]; S.blActive=-1; saveTickets();
+  $('#bl-another').disabled=true; renderTickets();
+}
+
+function renderTickets(){
+  const host=$('#bl-tickets'); if(!host) return;
+  $('#bl-another').disabled=!S.blTickets.length;
+  if(!S.blTickets.length){ host.innerHTML=''; return; }
+  host.innerHTML=`<div class="row" style="justify-content:space-between;margin-top:14px">
+      <b style="font-size:13.5px">Saved tickets (${S.blTickets.length})</b>
+      <button class="btn ghost sm" id="bl-clearall">Delete all</button></div>
+    <p class="note" style="margin:4px 0 0">Prices are as of when each ticket was built. Re-scan before betting an old one.</p>`;
+  S.blTickets.forEach((t,i)=>{
+    const p=parlay(t.legs);
+    const when=t.at?new Date(t.at).toLocaleString([],{weekday:'short',hour:'numeric',minute:'2-digit'}):'';
+    const card=el('div','ticket'+(i===S.blActive?' active':''));
+    card.innerHTML=`<div class="th"><b>Ticket ${i+1} <span style="font-weight:400;color:var(--muted);font-size:12px">${esc(when)}</span></b>
+        <span class="px">${fmtAm(p.americanCombined)} <span style="color:var(--muted)">· fair</span> <span class="ref">${fmtAm(p.fairAmerican)}</span></span></div>
+      <ul>${t.legs.map(l=>`<li><span>${esc(l.sel)}${l.approx?' <span class="tag warnt">approx</span>':''}<small style="display:block;color:var(--muted)">${esc(l.book)} · ${esc(l.market)}</small></span><span>${fmtAm(l.price)}</span></li>`).join('')}</ul>
+      <div class="tf"><span>house edge <b class="neg mono">${p.holdOnTicket.toFixed(1)}%</b> · lands <b class="mono">${pct(p.pJoint,1)}</b></span>
+        <span>${i===S.blActive?'<span class="tag reft">showing below</span>':`<button class="btn ghost sm" data-tk="${i}">Show</button>`}
+        <button class="btn ghost sm" data-tkdel="${i}" aria-label="Delete ticket ${i+1}">×</button></span></div>`;
+    host.appendChild(card);
+  });
+  host.querySelectorAll('[data-tk]').forEach(b=>b.addEventListener('click',()=>{
+    S.blActive=+b.dataset.tk; S.legs=S.blTickets[S.blActive].legs.map(l=>({...l}));
+    renderTickets(); renderLegs();
+  }));
+  host.querySelectorAll('[data-tkdel]').forEach(b=>b.addEventListener('click',()=>{
+    const i=+b.dataset.tkdel;
+    S.blTickets.splice(i,1);
+    if(S.blActive===i) S.blActive=S.blTickets.length-1; else if(S.blActive>i) S.blActive--;
+    saveTickets(); renderTickets();
+    if(S.blActive>=0){ S.legs=S.blTickets[S.blActive].legs.map(l=>({...l})); renderLegs(); }
+  }));
+  $('#bl-clearall').addEventListener('click',()=>{
+    if(confirm(`Delete all ${S.blTickets.length} saved tickets?`)) resetTickets();
+  });
+}
+
+$('#bl-build').addEventListener('click',()=>buildParlay(false));
+renderTickets();
+if(S.blActive>=0){ S.legs=S.blTickets[S.blActive].legs.map(l=>({...l})); renderLegs(); }
+$('#bl-another').addEventListener('click',()=>buildParlay(true));
 $('#bl-clearsel').addEventListener('click',()=>{ S.blGames=[]; renderBuilderGames(); msg('#bl-msg',''); });
 renderMarketChips();
 renderBuilderGames();
