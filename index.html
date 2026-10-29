@@ -391,6 +391,9 @@ details.term .d b{color:var(--ink)}
         <details class="term"><summary>Sure bet (arbitrage)</summary><div class="d">
           Two books disagree enough that you can back <b>both sides</b> and profit whichever way it goes. Real but rare, small, and gone in a minute. Books limit accounts that hit them often.</div></details>
 
+        <details class="term"><summary>Same-game parlay (SGP)</summary><div class="d">
+          Several bets from <b>one game</b> on one ticket. The legs are linked — if the Eagles run away with it, their spread, the over and their receiver's yards tend to hit together — so books don't multiply the legs. They cut the payout instead, and usually add extra margin. Pick a single game in the Parlay Builder to build one, then type in what FanDuel and DraftKings quote to see which pays more.</div></details>
+
         <details class="term"><summary>Why parlays are priced badly</summary><div class="d">
           The book's cut applies to <em>every leg</em> and the cuts multiply. One bet at −110 costs you 4.5%. Five of them parlayed costs you <b>20.8%</b>. The payout looks big because the odds of winning got small — faster than the payout grew. The Parlay Builder prints the real number on every ticket.</div></details>
       </div>
@@ -599,7 +602,7 @@ details.term .d b{color:var(--ink)}
             </div>
           </div>
           <div style="margin-bottom:8px">
-            <span style="font-size:12.5px;color:var(--muted);display:block;margin-bottom:5px">Games to choose from — none selected means all of them</span>
+            <span style="font-size:12.5px;color:var(--muted);display:block;margin-bottom:5px">Games to choose from — none selected means all of them. <b>Pick just one for a same-game parlay.</b></span>
             <div class="chips" id="bl-games"></div>
           </div>
           <div id="bl-propbar" hidden style="margin-bottom:10px"></div>
@@ -838,7 +841,7 @@ function parseCSV(text){
 /* ============================================================
    SECTION 2 — state, storage, small DOM helpers
    ============================================================ */
-const BUILD='r9';            // bump on every release — shown in the header
+const BUILD='r10';            // bump on every release — shown in the header
 const S={key:'',regions:['us'],games:[],legs:[],quota:null,scanned:null,history:null};
 const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
 const el=(t,c,h)=>{const n=document.createElement(t); if(c)n.className=c; if(h!=null)n.innerHTML=h; return n;};
@@ -1168,7 +1171,8 @@ function renderEdges(){
   host.querySelectorAll('[data-add]').forEach(b=>b.addEventListener('click',()=>{
     const r=rows[+b.dataset.add];
     S.legs.push({desc:`${r.sel} — ${r.market}`,sub:`${r.game} · ${r.book}`,
-      decOffered:r.dec,pFair:r.pFair,price:r.price,gameId:r.gameId});
+      decOffered:r.dec,pFair:r.pFair,price:r.price,gameId:r.gameId,
+      mkey:r.mkey,sel:r.sel,market:r.market,game:r.game,book:r.book,bookKey:r.bookKey});
     renderLegs(); b.textContent='added'; b.disabled=true;
   }));
   host.querySelectorAll('[data-log]').forEach(b=>b.addEventListener('click',()=>{
@@ -1498,8 +1502,90 @@ function renderLegs(){
   renderParlay();
 }
 
+/* ---------- same-game parlays ----------
+   The odds feed carries no SGP prices, and an SGP is not priced by
+   multiplying its legs: the book cuts the payout because legs in one game
+   move together, and adds margin on top. The true chance of the ticket
+   can't be recovered from single-leg prices, so the app doesn't pretend.
+   What it can do honestly is compare the real quotes from the user's books.
+   Quotes persist per ticket (keyed by its legs). */
+const isSGP = legs => legs.length>1 && legs.every(l=>l.gameId && l.gameId===legs[0].gameId);
+S.sgpQuotes = load('sgp_quotes', {});
+const BOOK_NAMES = {fanduel:'FanDuel', draftkings:'DraftKings', betmgm:'BetMGM', caesars:'Caesars',
+  williamhill_us:'Caesars', betrivers:'BetRivers', espnbet:'ESPN Bet', fanatics:'Fanatics', hardrockbet:'Hard Rock'};
+const bookName = k => BOOK_NAMES[k] || (booksSeen().find(([key])=>key===k)||[])[1] || k;
+
+function parseAm(v){
+  const n=parseFloat(String(v).replace(/[^\d.+-]/g,''));
+  if(!isFinite(n)||Math.abs(n)<100) return NaN;
+  return n;
+}
+function bestQuote(legs){
+  const q=S.sgpQuotes[ticketKey(legs)]||{};
+  let best=null;
+  Object.entries(q).forEach(([k,v])=>{ const am=parseAm(v); if(!isFinite(am)) return;
+    const d=amToDec(am); if(!best||d>best.dec) best={key:k,title:bookName(k),am,dec:d}; });
+  return best;
+}
+
+function renderSGP(out){
+  const legs=S.legs, key=ticketKey(legs);
+  const indep=parlay(legs);
+  const books=(S.myBooks.length?S.myBooks:['fanduel','draftkings']).slice(0,4);
+  S.sgpQuotes[key]=S.sgpQuotes[key]||{};
+
+  const box=el('div','card');
+  box.appendChild(el('h2',null,`Same-game parlay <span class="sub">${legs.length} legs · ${esc(legs[0].game)}</span>`));
+  const b=el('div','body');
+
+  b.appendChild(el('p','note',`Every leg is from one game, so they move together — if a team runs away with it, its spread, the over and its receiver's yards tend to hit at the same time. Books cut the payout for that, so <b>an SGP is never priced by multiplying the legs</b>, and the app has no way to see FanDuel's or DraftKings' SGP price. Add the legs in each app and type in what they quote.`));
+
+  const form=el('div','grid');
+  form.style.marginBottom='12px';
+  books.forEach(k=>{
+    form.appendChild(el('label','f',`<span>${esc(bookName(k))} quote</span>
+      <input type="text" inputmode="numeric" class="mono" data-q="${esc(k)}" placeholder="e.g. +450"
+        value="${esc(S.sgpQuotes[key][k]||'')}">`));
+  });
+  b.appendChild(form);
+  const res=el('div',null); res.id='sgp-result'; b.appendChild(res);
+
+  const ref=el('table');
+  ref.innerHTML=`<tr><th>For reference</th><th class="num">Price</th><th>What it means</th></tr>
+    <tr><td>Legs multiplied</td><td class="num">${fmtAm(indep.americanCombined)}</td><td>what this would pay as separate games — not a price any book will give you here</td></tr>
+    <tr><td>Fair, if independent</td><td class="num ref">${fmtAm(indep.fairAmerican)}</td><td>no margin, no correlation — a rough guide only</td></tr>`;
+  stack(ref); b.appendChild(ref);
+  b.appendChild(el('p','note','Because the legs are linked, the real chance this ticket lands is unknown from these prices. It is usually higher than the independent estimate when the legs help each other (a team covering and its receiver going over), and lower when they pull against each other.'));
+  box.appendChild(b); out.appendChild(box);
+
+  const update=()=>{
+    const q=S.sgpQuotes[key], rows=[];
+    Object.entries(q).forEach(([k,v])=>{ const am=parseAm(v); if(isFinite(am)) rows.push({k,am,dec:amToDec(am)}); });
+    if(!rows.length){ res.innerHTML='<div class="empty" style="padding:14px">Type at least one quote to compare.</div>'; return; }
+    rows.sort((a,b)=>b.dec-a.dec);
+    const top=rows[0], stake=10;
+    let html=`<div class="ok"><b>${esc(bookName(top.k))} ${fmtAm(top.am)}</b> pays $${(stake*(top.dec-1)).toFixed(2)} profit on a $${stake} bet`;
+    if(rows.length>1){
+      const nxt=rows[1], diff=stake*(top.dec-nxt.dec);
+      html+= diff>0.005
+        ? ` — <b>$${diff.toFixed(2)} more</b> than ${esc(bookName(nxt.k))} ${fmtAm(nxt.am)}, ${(100*(top.dec-1)/(nxt.dec-1)-100).toFixed(1)}% bigger payout. Same bet, better price.`
+        : ` — the same as ${esc(bookName(nxt.k))}. Either app.`;
+    } else html+='. Add another book\'s quote to compare.';
+    html+='</div>';
+    const cut=100*(1-(top.dec-1)/(indep.decCombined-1));
+    if(isFinite(cut)) html+=`<p class="note">${esc(bookName(top.k))} pays ${Math.abs(cut).toFixed(0)}% ${cut>=0?'less':'more'} than the legs multiplied. ${cut>=0?'That gap is the correlation discount plus the book\'s extra margin — the app can\'t separate the two.':'Unusual for an SGP — usually means the legs pull against each other, or a price is stale. Double-check before betting.'}</p>`;
+    res.innerHTML=html;
+    renderTickets();
+  };
+  b.querySelectorAll('[data-q]').forEach(inp=>inp.addEventListener('input',()=>{
+    S.sgpQuotes[key][inp.dataset.q]=inp.value; store('sgp_quotes',S.sgpQuotes); update();
+  }));
+  update();
+}
+
 function renderParlay(){
   const out=$('#parlay-out'); out.innerHTML='';
+  if(isSGP(S.legs)){ renderSGP(out); return; }
   const rho = S.legs.length===2 ? (+($('#rho')?.value)||0) : 0;
   const p=parlay(S.legs,rho);
   const c=cfg();
@@ -1904,7 +1990,7 @@ const PROP_LABEL = {
   player_rush_yds:'Rush yards', player_reception_yds:'Rec yards',
   player_receptions:'Receptions', player_pass_tds:'Pass TDs'
 };
-const isProp = m => m.startsWith('player_');
+const isProp = m => typeof m==='string' && m.startsWith('player_');
 
 function renderBuilderGames(){
   const host=$('#bl-games'); if(!host) return;
@@ -2087,6 +2173,7 @@ function builderPool(c){
         if(!best) return;
         pool.push({gameId:g.id, ...meta,
           market:{h2h:'Moneyline',spreads:'Spread',totals:'Total'}[mkey], mkey,
+          team:mkt.books[0].names[i], point:mkt.books[0].points[i],
           sel:lab, outIdx:i, pFair:cons.fair[i], approx:false, ...best,
           ev:evPerUnit(cons.fair[i],best.dec)});
       });
@@ -2112,12 +2199,28 @@ const ticketKey = legs => legs.map(selKey).sort().join(' & ');
    it's the same subject; it would also mean two tickets betting against
    each other. Branch-and-bound with a node budget, so it always answers
    quickly on a phone. */
-function searchTicket(pool, nLegs, mode, saved, minDiff){
+/* Can two legs from the SAME game sit on one same-game parlay?
+   Blocks what the books block: two sides of one market, a moneyline with the
+   same team's spread (redundant — one implies the other), and a moneyline
+   with the other team as the spread favourite (contradiction — both can't
+   win). Moneyline + other team getting points is allowed: "wins by 1-3". */
+function sgpCompatible(a,b){
+  if(subjectOf(a)===subjectOf(b)) return false;
+  const ml = a.mkey==='h2h'?a : b.mkey==='h2h'?b : null;
+  const sp = a.mkey==='spreads'?a : b.mkey==='spreads'?b : null;
+  if(ml&&sp){
+    if(sp.team===ml.team) return false;           // redundant
+    if(sp.point<0) return false;                  // other team favoured to cover -> ML side loses
+  }
+  return true;
+}
+
+function searchTicket(pool, nLegs, mode, saved, minDiff, sgp){
   const opts=pool.map(p=>({p,s:legScore(p,mode),subj:subjectOf(p)})).sort((x,y)=>y.s-x.s);
   const perGame={}, cand=[], cap=nLegs>=5?28:40;
   for(const o of opts){
     perGame[o.p.gameId]=(perGame[o.p.gameId]||0)+1;
-    if(perGame[o.p.gameId]<=4) cand.push(o);
+    if(sgp || perGame[o.p.gameId]<=4) cand.push(o);
     if(cand.length>=cap) break;
   }
   const savedSets=saved.map(t=>new Set(t.legs.map(subjectOf)));
@@ -2133,10 +2236,11 @@ function searchTicket(pool, nLegs, mode, saved, minDiff){
     for(let j=i;j<n;j++){
       const o=cand[j];
       if(score+o.s+bound(j+1,left-1)<=bestScore) break;     // sorted: nothing later can win
-      if(usedG.has(o.p.gameId)) continue;
+      if(sgp){ if(!chosen.every(c=>sgpCompatible(c.p,o.p))) continue; }
+      else if(usedG.has(o.p.gameId)) continue;
       chosen.push(o); usedG.add(o.p.gameId);
       dfs(j+1,score+o.s);
-      chosen.pop(); usedG.delete(o.p.gameId);
+      chosen.pop(); if(!chosen.some(c=>c.p.gameId===o.p.gameId)) usedG.delete(o.p.gameId);
     }
   })(0,0);
   return best;
@@ -2151,6 +2255,7 @@ function toLeg(p){
     sub:`${p.game} · ${p.book} ${fmtAm(p.price)}${p.approx?' · fair approx':''}`,
     decOffered:p.dec, pFair:p.pFair, price:p.price, gameId:p.gameId,
     game:p.game, market:p.market, mkey:p.mkey, sel:p.sel, outIdx:p.outIdx, who:p.who,
+    team:p.team, point:p.point,
     book:p.book, bookKey:p.key, dec:p.dec, commence:p.commence, approx:p.approx };
 }
 
@@ -2181,13 +2286,27 @@ function buildParlay(another){
   }
 
   const nGames=new Set(pool.map(p=>p.gameId)).size;
-  const nEff=Math.min(nLegs,nGames);
+  const sgp = nGames===1;
   const diffSel=$('#bl-diff').value;
-  const minDiff=diffSel==='all'?nEff:+diffSel;
-  const picked=searchTicket(pool, nEff, mode, another?S.blTickets:[], another?minDiff:0);
+  let nEff=Math.min(nLegs, sgp ? new Set(pool.map(subjectOf)).size : nGames);
+  let picked=null;
+  if(sgp && nEff<2){
+    const g=pool[0].game, propCost=S.regions.length;
+    msg('#bl-msg','warnbox',`One game selected, so this is a same-game parlay — but ${esc(g)} only has ${nEff} market turned on. Turn on Spread, Over / Under, or player props to get more legs. Props for one game cost ${propCost} credit${propCost===1?'':'s'} per market.`);
+    return;
+  }
+  // SGP: if the asked-for leg count can't be met without contradictory or
+  // redundant legs, step down rather than fail
+  for(let k=nEff; k>=(sgp?2:1) && !picked; k--){
+    const minDiff=diffSel==='all'?k:+diffSel;
+    picked=searchTicket(pool, k, mode, another?S.blTickets:[], another?minDiff:0, sgp);
+    if(picked) nEff=k;
+    if(!sgp) break;
+  }
 
   if(!picked){
-    msg('#bl-msg','warnbox',`No more distinct tickets that change ${diffSel==='all'?'every leg':`at least ${minDiff} leg${minDiff===1?'':'s'}`} from all ${S.blTickets.length} saved. Lower “Each new ticket must change”, add games or markets, or delete some tickets.`);
+    const md=+diffSel;
+    msg('#bl-msg','warnbox',`No more distinct tickets that change ${diffSel==='all'?'every leg':`at least ${md} leg${md===1?'':'s'}`} from all ${S.blTickets.length} saved. Lower “Each new ticket must change”, add games or markets, or delete some tickets.`);
     return;
   }
 
@@ -2214,22 +2333,29 @@ function buildParlay(another){
     if(subjectOf(l)===subjectOf(n)&&l.sel!==n.sel) against.push(i+1);
   })));
 
-  S.blTickets.push({legs, at:new Date().toISOString(), mode});
+  S.blTickets.push({legs, at:new Date().toISOString(), mode, sgp});
   S.blActive=S.blTickets.length-1;
   S.legs=legs.map(l=>({...l}));
   saveTickets();
 
   const n=S.blTickets.length;
   const nApprox=legs.filter(l=>l.approx).length, nProps=legs.filter(l=>isProp(l.mkey)).length;
-  let note = nEff<nLegs
-    ? `Ticket ${n}: only ${nEff} game${nEff===1?'':'s'} available, so it's ${nEff} leg${nEff===1?'':'s'} instead of ${nLegs}. One leg per game keeps the maths honest.`
+  let note;
+  if(sgp){
+    note = `Ticket ${n}: same-game parlay, ${legs.length} legs from ${esc(legs[0].game)}.`
+      + (nEff<nLegs ? ` You asked for ${nLegs}, but only ${nEff} fit together without legs that contradict or duplicate each other — turn on more markets or props for more.` : '')
+      + ' Enter the price FanDuel and DraftKings quote you below to see which pays more.';
+  } else {
+    note = nEff<nLegs
+    ? `Ticket ${n}: only ${nEff} game${nEff===1?'':'s'} available, so it's ${nEff} leg${nEff===1?'':'s'} instead of ${nLegs}. One leg per game keeps the maths honest — pick a single game for a same-game parlay.`
     : `Ticket ${n}: ${legs.length} legs${nProps?`, ${nProps} player prop${nProps===1?'':'s'}`:''}.`;
+  }
   if(closest) note+=` ${closest.changed} of ${legs.length} leg${legs.length===1?'':'s'} different from Ticket ${closest.i+1}, the closest earlier one.`;
   if(another&&mode==='ev'&&n>1) note+=' In best-price mode each new ticket is the next-best combination, so later ones are measurably worse — not equal alternatives.';
   if(held) note+=` Skipped ${held} pick${held===1?'':'s'} that would bet against a leg already on a saved ticket.`;
   if(against.length) note+=` <b>Heads up:</b> this ticket takes the other side of a leg on Ticket ${[...new Set(against)].join(', ')}. Play both and one is guaranteed to lose that leg.`;
   if(nApprox) note+=` ${nApprox} leg${nApprox===1?' uses an':'s use'} approximate fair value — that book posts only one side, so the vig cannot be stripped out exactly.`;
-  msg('#bl-msg', (nEff<nLegs||against.length)?'warnbox':'ok', note);
+  msg('#bl-msg', ((!sgp&&nEff<nLegs)||against.length)?'warnbox':'ok', note);
 
   $('#bl-another').disabled=false;
   renderTickets(); renderLegs();
@@ -2251,12 +2377,17 @@ function renderTickets(){
     <p class="note" style="margin:4px 0 0">Prices are as of when each ticket was built. Re-scan before betting an old one.</p>`;
   S.blTickets.forEach((t,i)=>{
     const p=parlay(t.legs);
+    const isSgp=isSGP(t.legs), q=isSgp?bestQuote(t.legs):null;
     const when=t.at?new Date(t.at).toLocaleString([],{weekday:'short',hour:'numeric',minute:'2-digit'}):'';
     const card=el('div','ticket'+(i===S.blActive?' active':''));
-    card.innerHTML=`<div class="th"><b>Ticket ${i+1} <span style="font-weight:400;color:var(--muted);font-size:12px">${esc(when)}</span></b>
-        <span class="px">${fmtAm(p.americanCombined)} <span style="color:var(--muted)">· fair</span> <span class="ref">${fmtAm(p.fairAmerican)}</span></span></div>
+    card.innerHTML=`<div class="th"><b>Ticket ${i+1}${isSgp?' <span class="tag reft">SGP</span>':''} <span style="font-weight:400;color:var(--muted);font-size:12px">${esc(when)}</span></b>
+        <span class="px">${isSgp
+          ? (q?`<span class="pos">${esc(q.title)} ${fmtAm(q.am)}</span>`:'<span style="color:var(--muted)">enter quotes</span>')
+          : `${fmtAm(p.americanCombined)} <span style="color:var(--muted)">· fair</span> <span class="ref">${fmtAm(p.fairAmerican)}</span>`}</span></div>
       <ul>${t.legs.map(l=>`<li><span>${esc(l.sel)}${l.approx?' <span class="tag warnt">approx</span>':''}<small style="display:block;color:var(--muted)">${esc(l.book)} · ${esc(l.market)}</small></span><span>${fmtAm(l.price)}</span></li>`).join('')}</ul>
-      <div class="tf"><span>house edge <b class="neg mono">${p.holdOnTicket.toFixed(1)}%</b> · lands <b class="mono">${pct(p.pJoint,1)}</b></span>
+      <div class="tf"><span>${isSgp
+          ? `${esc(t.legs[0].game)}`
+          : `house edge <b class="neg mono">${p.holdOnTicket.toFixed(1)}%</b> · lands <b class="mono">${pct(p.pJoint,1)}</b>`}</span>
         <span>${i===S.blActive?'<span class="tag reft">showing below</span>':`<button class="btn ghost sm" data-tk="${i}">Show</button>`}
         <button class="btn ghost sm" data-tkdel="${i}" aria-label="Delete ticket ${i+1}">×</button></span></div>`;
     host.appendChild(card);
