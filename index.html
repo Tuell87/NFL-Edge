@@ -188,6 +188,19 @@ tr:hover td{background:var(--sunk)}
 .holdbar div{display:flex; align-items:center; justify-content:center; font-family:var(--mono); font-size:11px; color:#fff}
 .holdbar .keep{background:var(--pos)} .holdbar .house{background:var(--neg)}
 
+.betcard{border:1px solid var(--rule); border-radius:4px; background:var(--surface); margin-bottom:10px; padding:12px 13px}
+.betcard .hl{display:flex; justify-content:space-between; align-items:baseline; gap:10px}
+.betcard .hl b{font-size:15px; line-height:1.3}
+.betcard .big{font-family:var(--mono); font-size:22px; font-weight:600; white-space:nowrap}
+.betcard .meta{font-size:12.5px; color:var(--muted); margin:2px 0 8px}
+.betcard .say{font-size:14px; line-height:1.5; margin:0 0 8px}
+.betcard .say b{font-family:var(--mono)}
+.betcard .flags{display:flex; flex-direction:column; gap:5px; margin:0 0 9px}
+.flag{font-size:12.5px; padding:6px 9px; border-radius:3px; line-height:1.4}
+.flag.warn{background:var(--warn-bg); color:var(--warn)}
+.flag.info{background:var(--ref-bg); color:var(--ref)}
+.betcard .acts{display:flex; gap:7px; flex-wrap:wrap}
+a.btn{text-decoration:none; display:inline-block}
 .ticket{border:1px solid var(--rule); border-radius:3px; background:var(--surface); margin-top:10px}
 .ticket.active{border-color:var(--ref); box-shadow:0 0 0 1px var(--ref)}
 .ticket .th{display:flex; justify-content:space-between; align-items:baseline; gap:10px;
@@ -199,6 +212,13 @@ tr:hover td{background:var(--sunk)}
 .ticket li span:last-child{font-family:var(--mono); color:var(--muted); white-space:nowrap}
 .ticket .tf{display:flex; justify-content:space-between; align-items:center; gap:10px;
   padding:8px 12px; border-top:1px solid var(--rule-soft); font-size:12.5px; flex-wrap:wrap}
+.dbg-row{display:flex; gap:9px; padding:6px 0; border-bottom:1px solid var(--rule-soft); font-size:13px; align-items:flex-start}
+.dbg-row .st{flex:0 0 46px; font-family:var(--mono); font-size:11.5px; font-weight:700; text-align:center; border-radius:3px; padding:1px 0}
+.dbg-row .st.pass{background:var(--pos-bg); color:var(--pos)}
+.dbg-row .st.fail{background:var(--neg-bg); color:var(--neg)}
+.dbg-row .st.warn{background:var(--warn-bg); color:var(--warn)}
+.dbg-row .st.skip{background:var(--sunk); color:var(--muted)}
+.dbg-row .d{color:var(--muted); font-size:12px; display:block}
 .builder{border:1px solid var(--rule-soft); border-radius:3px; padding:13px; background:var(--sunk); margin-bottom:4px}
 .empty{padding:28px 16px; text-align:center; color:var(--muted); font-size:14px}
 .err{background:var(--neg-bg); color:var(--neg); border:1px solid var(--neg); padding:10px 13px; margin-bottom:12px; border-radius:2px; font-size:13.5px}
@@ -281,6 +301,10 @@ details.term .d{padding:0 12px 11px; font-size:13.5px; color:var(--muted); line-
 details.term .d b{color:var(--ink)}
 
 @media (max-width:760px){
+  .btn.sm{min-height:38px; padding:7px 12px}                 /* thumb-sized */
+  .chip{min-height:36px}
+}
+@media (max-width:760px){
   table.stack{display:block}
   table.stack tr:first-child{display:none}          /* header row */
   table.stack tr{
@@ -348,8 +372,9 @@ details.term .d b{color:var(--ink)}
     <button role="tab" aria-selected="false" data-p="parlay">Parlay Builder</button>
     <button role="tab" aria-selected="false" data-p="base">Reality Check</button>
     <button role="tab" aria-selected="false" data-p="clv">My Bets</button>
-    <button role="tab" aria-selected="false" data-p="context">Injuries</button>
+    <button role="tab" aria-selected="false" data-p="context">Injuries &amp; News</button>
     <button role="tab" aria-selected="false" data-p="method">How It Works</button>
+    <button role="tab" aria-selected="false" data-p="debug">Diagnostics</button>
   </nav>
 
   <!-- ============ START HERE ============ -->
@@ -473,6 +498,49 @@ details.term .d b{color:var(--ink)}
             <select id="refmode">
               <option value="loo" selected>All books, leaving out the one being priced</option>
               <option value="sharp">Sharp books only (Pinnacle, Circa, BetOnline)</option>
+            </select>
+          </label>
+          <label class="f"><span>How much to trust sharp books</span>
+            <select id="sharpw">
+              <option value="1">Same as every other book</option>
+              <option value="3" selected>3× — recommended</option>
+              <option value="5">5× — lean hard on them</option>
+            </select>
+          </label>
+          <label class="f"><span>Ignore prices that lag the market by</span>
+            <select id="stalemin">
+              <option value="5">5 minutes — strict</option>
+              <option value="15" selected>15 minutes — recommended</option>
+              <option value="30">30 minutes</option>
+              <option value="0">Never — use every price</option>
+            </select>
+          </label>
+        </div>
+        <p class="note" style="margin-top:10px">Turn on <b>eu · Pinnacle</b> in Regions above for the best reference price. You can't bet there from Indiana, but it makes every fair price more trustworthy. Costs 3 more credits a scan.</p>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Display <span class="sub">easier on the eyes</span></h2>
+      <div class="body">
+        <div class="grid">
+          <label class="f"><span>Text size</span>
+            <select id="textsize">
+              <option value="1" selected>Normal</option>
+              <option value="1.15">Large</option>
+              <option value="1.3">Larger</option>
+            </select>
+          </label>
+          <label class="f"><span>Best Prices layout</span>
+            <select id="edgeview">
+              <option value="cards" selected>Cards — plain English</option>
+              <option value="table">Table — all the numbers</option>
+            </select>
+          </label>
+          <label class="f"><span>Ask the books for direct bet links</span>
+            <select id="wantlinks">
+              <option value="1" selected>Yes — show "Open in FanDuel"</option>
+              <option value="0">No</option>
             </select>
           </label>
         </div>
@@ -667,6 +735,7 @@ details.term .d b{color:var(--ink)}
         <span class="sub">closing prices are captured automatically each time you scan the board</span></h2>
       <div class="body">
         <div class="row">
+          <button class="btn sm" id="clv-grade">Grade finished games</button>
           <button class="btn ghost sm" id="clv-export">Export log</button>
           <label class="btn ghost sm" style="cursor:pointer">Import log<input type="file" id="clv-import" accept="application/json" hidden></label>
           <button class="btn ghost sm" id="clv-demo">Load example data</button>
@@ -689,13 +758,55 @@ details.term .d b{color:var(--ink)}
 
   <!-- ============ CONTEXT ============ -->
   <section class="panel" id="p-context">
-    <div class="card"><h2>Injuries and form
+    <div class="card"><h2>This week at a glance <span class="sub">line moves, weather, fresh injuries — free</span></h2>
+      <div class="body"><div id="glance-out"><div class="empty">Scan today's games first — this fills in by itself afterwards, no credits.</div></div></div>
+    </div>
+
+    <div class="card"><h2>Latest news <span class="sub">ESPN, tagged by team</span></h2>
+      <div class="body"><div id="news-out"><div class="empty">Loads with your scan.</div></div></div>
+    </div>
+
+    <div class="card"><h2>Social chatter <span class="sub">Bluesky — unverified, read with care</span></h2>
+      <div class="body">
+        <p class="note">Injury news sometimes breaks here before ESPN, but most of it is fans guessing. Treat anything you see as a lead to check, never a reason to bet. Posts come from anyone.</p>
+        <div class="row">
+          <select id="sky-team" style="max-width:280px"><option value="">Pick a team</option></select>
+          <select id="sky-topic" style="max-width:180px">
+            <option value="injury">injury</option><option value="out">ruled out</option>
+            <option value="inactive">inactive</option><option value="weather">weather</option>
+          </select>
+          <button class="btn" id="sky-go">Search</button>
+        </div>
+        <div id="sky-out" style="margin-top:10px"></div>
+      </div>
+    </div>
+
+    <div class="card"><h2>Injury report
       <span class="sub">from ESPN — no key required</span></h2>
       <div class="body">
         <div class="row"><button class="btn" id="loadctx">Load week</button></div>
         <div id="ctx-msg" style="margin-top:12px"></div>
         <div id="ctx-out"></div>
       </div>
+    </div>
+  </section>
+
+  <!-- ============ DIAGNOSTICS ============ -->
+  <section class="panel" id="p-debug">
+    <div class="card"><h2>Diagnostics <span class="sub">double-checks the app — costs no credits</span></h2>
+      <div class="body">
+        <p class="note">Runs the maths against answers worked out by hand, inspects today's prices for anything impossible, checks every data source can be reached from this phone, and looks over your saved bets and tickets. If something looks wrong, tap <b>Copy report</b> and paste it to Claude.</p>
+        <div class="row">
+          <button class="btn" id="dbg-run">Run all checks</button>
+          <button class="btn ghost sm" id="dbg-copy">Copy report</button>
+          <button class="btn ghost sm" id="dbg-clear">Clear log</button>
+        </div>
+        <div id="dbg-summary" role="status" aria-live="polite" style="margin-top:12px"></div>
+        <div id="dbg-out"></div>
+      </div>
+    </div>
+    <div class="card"><h2>Activity log <span class="sub">last 200 events, newest first</span></h2>
+      <div class="body"><div id="dbg-log" class="mono" style="font-size:11.5px;line-height:1.5;max-height:360px;overflow-y:auto"></div></div>
     </div>
   </section>
 
@@ -707,6 +818,19 @@ details.term .d b{color:var(--ink)}
         <p class="note"><b>It measures price disagreement.</b> Books do not post identical numbers. When one book's devigged probability sits away from the consensus of the others, that gap is measurable and, unlike a prediction, it is verifiable at the moment you see it. That is the only edge this tool claims.</p>
         <p class="note"><b>Where the measurable gaps are largest</b>, in rough order: player props on secondary books, alternate lines, cross-market disagreement during news, and stale prices in the minutes after an injury report. Game-line moneylines at major books are the most efficient and least worth your time.</p>
         <p class="note"><b>The honest caveats.</b> Consensus is not truth — if every book is wrong together, the tool sees nothing. Devig methods disagree, most on longshots, which is why the worst-case option exists. Closing-line value is the only feedback loop worth tracking: log whether your price beat the closing number, because results take hundreds of bets to mean anything and CLV tells you sooner. Books restrict accounts that consistently take the best price. And every parlay in the Parlay lab will show a negative expected value unless a leg is genuinely mispriced, because that is what the arithmetic says.</p>
+      </div>
+    </div>
+    <div class="card"><h2>How to update this app <span class="sub">when Claude sends a new version</span></h2>
+      <div class="body">
+        <ol class="note" style="padding-left:18px;margin:0 0 10px">
+          <li>Save the new <b>nfl-edge-terminal</b> file to your phone (tap the file → Save to Files).</li>
+          <li>In <b>Safari</b> (not the GitHub app), open <span class="mono">github.com/Tuell87/NFL-Edge</span>.</li>
+          <li>Tap <b>index.html</b>, then the <b>pencil</b>. Select all, delete, paste the new version.<br>
+              <i>Or:</i> Add file → Upload files → pick the saved file, rename it <span class="mono">index.html</span>.</li>
+          <li>Tap <b>Commit changes</b>. That's the whole thing — no push or merge needed.</li>
+          <li>Wait a minute, then open the site with a new number on the end, e.g. <span class="mono">…/NFL-Edge/?v=11</span>, and check the blue badge by the title shows the new build.</li>
+        </ol>
+        <p class="note">Your API key, bets and saved tickets stay put — they live in Safari, not in the file. <b>Don't</b> use Clear Website Data; that wipes them.</p>
       </div>
     </div>
     <div class="card"><h2>Version <span class="sub">check this after every update</span></h2>
@@ -725,24 +849,25 @@ details.term .d b{color:var(--ink)}
   </section>
 </div>
 
-<nav class="bottomnav" id="bottomnav">
-  <button data-p="home"><span class="ic">◉</span>Start</button>
-  <button data-p="board"><span class="ic">▦</span>Games</button>
-  <button data-p="edges"><span class="ic">◆</span>Best Prices</button>
-  <button data-p="parlay"><span class="ic">⛓</span>Parlay</button>
-  <button data-p="clv"><span class="ic">▤</span>My Bets</button>
-  <button id="morebtn"><span class="ic">⋯</span>More</button>
+<nav class="bottomnav" id="bottomnav" aria-label="Main screens">
+  <button data-p="home"><span class="ic" aria-hidden="true">◉</span>Start</button>
+  <button data-p="board"><span class="ic" aria-hidden="true">▦</span>Games</button>
+  <button data-p="edges"><span class="ic" aria-hidden="true">◆</span>Best Prices</button>
+  <button data-p="parlay"><span class="ic" aria-hidden="true">⛓</span>Parlay</button>
+  <button data-p="clv"><span class="ic" aria-hidden="true">▤</span>My Bets</button>
+  <button id="morebtn" aria-haspopup="dialog" aria-controls="moresheet"><span class="ic" aria-hidden="true">⋯</span>More</button>
 </nav>
-<div class="sheet" id="moresheet" hidden>
+<div class="sheet" id="moresheet" hidden role="dialog" aria-modal="true" aria-label="More screens">
   <div class="sheet-in">
     <h3>Everything else</h3>
     <button data-p="mine"><b>My Sportsbooks</b><span>Compare FanDuel vs DraftKings</span></button>
     <button data-p="props"><b>Player Props</b><span>Touchdowns, yards, receptions</span></button>
     <button data-p="arb"><b>Sure Bets</b><span>Both sides, guaranteed profit</span></button>
     <button data-p="base"><b>Reality Check</b><span>What actually wins, 1999–now</span></button>
-    <button data-p="context"><b>Injuries</b><span>Who's out this week</span></button>
+    <button data-p="context"><b>Injuries &amp; News</b><span>Line moves, weather, news, chatter</span></button>
     <button data-p="settings-alias" data-real="setup"><b>Settings</b><span>Key, bankroll, sportsbooks</span></button>
-    <button data-p="method"><b>How It Works</b><span>Plain-English glossary</span></button>
+    <button data-p="method"><b>How It Works</b><span>Glossary and how to update</span></button>
+    <button data-p="debug"><b>Diagnostics</b><span>Double-check everything is working</span></button>
     <button id="sheetclose" class="closer">Close</button>
   </div>
 </div>
@@ -790,11 +915,33 @@ function devig(q,method){
 const holdPct=q=>{const s=q.reduce((a,b)=>a+b,0);return (s-1)/s*100;};
 function median(a){if(!a.length)return NaN;const b=[...a].sort((x,y)=>x-y),m=b.length>>1;
   return b.length%2?b[m]:(b[m-1]+b[m])/2;}
+/* Weighted median. With equal weights it returns exactly the ordinary median
+   (including averaging the middle pair on an even count), so turning sharp
+   weighting off reproduces the old behaviour bit for bit. */
+function wmedian(vals,wts){
+  const a=vals.map((v,i)=>[v,wts[i]]).filter(x=>isFinite(x[0])&&x[1]>0).sort((x,y)=>x[0]-y[0]);
+  if(!a.length) return NaN;
+  const half=a.reduce((t,x)=>t+x[1],0)/2; let cum=0;
+  for(let i=0;i<a.length;i++){
+    cum+=a[i][1];
+    if(Math.abs(cum-half)<1e-9 && i+1<a.length) return (a[i][0]+a[i+1][0])/2;
+    if(cum>half) return a[i][0];
+  }
+  return a[a.length-1][0];
+}
+/* Sharp books set prices that the rest of the market follows; many US books
+   copy each other, so a plain median lets them outvote the sharp price. */
+function bookWeight(key){
+  const w=+(typeof document!=='undefined'&&document.getElementById('sharpw')?.value||3);
+  if(key==='pinnacle') return w+1;
+  return SHARP.includes(key)?w:1;
+}
 function consensusFair(books,method,leaveOut){
   const used=books.filter(b=>b.key!==leaveOut&&b.probs.every(p=>isFinite(p)&&p>0));
   if(!used.length)return null;
   const sets=used.map(b=>devig(b.probs,method));
-  const out=sets[0].map((_,i)=>median(sets.map(f=>f[i])));
+  const wts=used.map(b=>bookWeight(b.key));
+  const out=sets[0].map((_,i)=>wmedian(sets.map(f=>f[i]),wts));
   // 'worst' is a lower bound per outcome and must stay un-normalised (see devig)
   if(method==='worst')return {fair:out,nBooks:used.length};
   const s=out.reduce((a,b)=>a+b,0);
@@ -841,7 +988,7 @@ function parseCSV(text){
 /* ============================================================
    SECTION 2 — state, storage, small DOM helpers
    ============================================================ */
-const BUILD='r10';            // bump on every release — shown in the header
+const BUILD='r11';            // bump on every release — shown in the header
 const S={key:'',regions:['us'],games:[],legs:[],quota:null,scanned:null,history:null};
 const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
 const el=(t,c,h)=>{const n=document.createElement(t); if(c)n.className=c; if(h!=null)n.innerHTML=h; return n;};
@@ -885,6 +1032,8 @@ function showPanel(id){
   $$('.bottomnav button').forEach(x=>x.setAttribute('aria-current',String(x.dataset.p===id)));
   $('#moresheet').hidden=true;
   window.scrollTo({top:0,behavior:'instant'});
+  if(id==='debug') renderDbgLog();
+  if(id==='clv' && typeof autoGrade==='function') autoGrade(true);
 }
 $$('nav.rail button').forEach(b=>b.addEventListener('click',()=>showPanel(b.dataset.p)));
 $$('.bottomnav button[data-p]').forEach(b=>b.addEventListener('click',()=>showPanel(b.dataset.p)));
@@ -908,7 +1057,7 @@ document.getElementById('build2').textContent=BUILD;
   S.key=load('oddskey','')||'';
   S.regions=load('oddsregions',['us']);
   $('#apikey').value=S.key;
-  ['bankroll','kellymult','cap','minev','devigm','refmode'].forEach(id=>{
+  ['bankroll','kellymult','cap','minev','devigm','refmode','sharpw','stalemin','textsize','edgeview','wantlinks'].forEach(id=>{
     const v=load('cfg_'+id); if(v!=null)$('#'+id).value=v;
     $('#'+id).addEventListener('change',()=>store('cfg_'+id,$('#'+id).value));
   });
@@ -966,30 +1115,59 @@ function readQuota(r){
 /* ============================================================
    SECTION 5 — scan the board
    ============================================================ */
-$('#scan').addEventListener('click',scanBoard);
+$('#scan').addEventListener('click',()=>scanBoard(false));
 
-async function scanBoard(){
-  if(!S.key){msg('#board-msg','err','No key saved. Set one up on the Setup tab first.');return;}
+const RESCAN_MIN=10;
+const scanCost=()=>S.regions.length*3;
+
+/* Every paid scan goes through here. A scan younger than RESCAN_MIN asks
+   first, because the prices barely move in that time and the credits do. */
+async function scanBoard(force){
+  if(!S.key){msg('#board-msg','err','No key saved. Set one up on the Settings screen first.');return;}
+  const age=S.scanned?(Date.now()-S.scanned)/60000:Infinity;
+  if(!force && age<RESCAN_MIN){
+    msg('#board-msg','warnbox',`Prices are from ${Math.max(0,Math.round(age))} min ago — they rarely move much that fast. You can browse every screen on them for free.
+      <div style="margin-top:8px"><button class="btn sm" id="rescan-anyway">Rescan anyway — ${scanCost()} credits</button></div>`);
+    $('#rescan-anyway').addEventListener('click',()=>scanBoard(true));
+    return;
+  }
   msg('#board-msg','ok','<span class="spin"></span> Pulling prices…');
+  const links=$('#wantlinks')?.value!=='0';
   const url=`https://api.the-odds-api.com/v4/sports/americanfootball_nfl/odds/`
     +`?apiKey=${encodeURIComponent(S.key)}&regions=${S.regions.join(',')}`
-    +`&markets=h2h,spreads,totals&oddsFormat=american`;
+    +`&markets=h2h,spreads,totals&oddsFormat=american${links?'&includeLinks=true':''}`;
   try{
     const r=await fetch(url);
-    if(!r.ok){msg('#board-msg','err',`Provider returned ${r.status}${r.status===401?' — the key was rejected':''}.`);return;}
+    if(!r.ok){
+      dbg('error',`Odds scan failed: HTTP ${r.status}`);
+      msg('#board-msg','err',`Provider returned ${r.status}${r.status===401?' — the key was rejected':r.status===429?' — out of credits or too many requests':''}.`);return;}
     readQuota(r);
     const games=await r.json();
+    dbg('info',`Scan: ${games.length} games, ${S.regions.join('+')}, links ${links?'on':'off'}, cost ${S.quota?.last??'?'} (expected ${scanCost()})`);
     if(!games.length){msg('#board-msg','warnbox','No NFL games are priced right now. Between rounds, books take the board down until the next slate opens.');return;}
-    S.games=games; S.scanned=new Date();
+    S.games=games; S.scanned=new Date(); S.scanCost={expected:scanCost(),actual:+(S.quota?.last)};
+    store('last_scan',{at:S.scanned.toISOString(),games,regions:S.regions});
     captureCloses();
     msg('#board-msg','');
-    renderBoard(); renderEdges(); renderMine(); renderArb(); fillPropGames(); renderSteps(); renderBuilderGames();
-  }catch(e){ msg('#board-msg','err','Network request failed. Check your connection.'); }
+    afterScan();
+    loadContext();
+  }catch(e){ dbg('error','Odds scan network failure: '+e.message); msg('#board-msg','err','Network request failed. Check your connection.'); }
+}
+
+function afterScan(){
+  renderBoard(); renderEdges(); renderMine(); renderArb(); fillPropGames(); renderSteps(); renderBuilderGames();
+  renderGlance(); renderNews(); fillSkyTeams();
 }
 
 /* Collect every book's quote for one market of one game.
    Returns { outcomes:[names], books:[{key,title,probs,prices,points}] } */
-function collectMarket(game,mkey){
+/* Minutes a book may lag the freshest book on the same market before its
+   price is treated as stale. A book that hasn't moved since news broke looks
+   like an edge but is just slow. 0 = off. */
+const staleMins = () => +($('#stalemin')?.value ?? 15);
+
+function collectMarket(game,mkey,opts){
+  const includeStale = opts && opts.includeStale;
   const rows=[], names=[];
   for(const bk of game.bookmakers){
     const m=(bk.markets||[]).find(x=>x.key===mkey);
@@ -998,11 +1176,25 @@ function collectMarket(game,mkey){
     const os=m.outcomes;
     const label=o=>mkey==='totals'?`${o.name} ${o.point}`:(mkey==='spreads'?`${o.name} ${o.point>0?'+':''}${o.point}`:o.name);
     const keys=os.map(label);
+    const upd=Date.parse(m.last_update||bk.last_update||'');
     rows.push({key:bk.key,title:bk.title,keys,
       prices:os.map(o=>o.price),probs:os.map(o=>decToProb(amToDec(o.price))),
-      points:os.map(o=>o.point),names:os.map(o=>o.name)});
+      points:os.map(o=>o.point),names:os.map(o=>o.name),
+      links:os.map(o=>o.link||m.link||bk.link||null),
+      updated:isFinite(upd)?upd:null, stale:false});
   }
   if(!rows.length)return null;
+  const lim=staleMins();
+  if(lim>0){
+    const newest=Math.max(...rows.map(r=>r.updated||0));
+    rows.forEach(r=>{ if(r.updated && newest-r.updated>lim*60000){ r.stale=true; r.lagMin=Math.round((newest-r.updated)/60000); } });
+  }
+  const stale=rows.filter(r=>r.stale);
+  if(!includeStale){
+    const fresh=rows.filter(r=>!r.stale);
+    if(!fresh.length) return null;
+    rows.length=0; rows.push(...fresh);
+  }
   // group books by identical outcome-key signature (same line)
   const groups={};
   for(const r of rows){
@@ -1011,7 +1203,7 @@ function collectMarket(game,mkey){
   }
   // keep the line with the most books behind it — the market's main number
   const best=Object.values(groups).sort((a,b)=>b.length-a.length)[0];
-  return {books:best,labels:best[0].keys};
+  return {books:best,labels:best[0].keys,stale};
 }
 
 function renderBoard(){
@@ -1027,7 +1219,7 @@ function renderBoard(){
       `<span class="when">${g.bookmakers.length} books</span>`));
     const bd=el('div','bd');
     for(const [mk,title] of [['h2h','Moneyline'],['spreads','Spread'],['totals','Total']]){
-      const mkt=collectMarket(g,mk); if(!mkt)continue;
+      const mkt=collectMarket(g,mk,{includeStale:true}); if(!mkt)continue;
       mkt.books.forEach(b=>{bookset.add(b.key); quotes+=b.prices.length;});
       bd.appendChild(marketBlock(mkt,title,c));
     }
@@ -1041,12 +1233,13 @@ function renderBoard(){
 
 function marketBlock(mkt,title,c){
   const wrap=el('div','mkt');
-  const books=mkt.books.map(b=>({key:b.key,probs:b.probs}));
+  const books=mkt.books.filter(b=>!b.stale).map(b=>({key:b.key,probs:b.probs}));
   const cons=consensusFair(books,c.method);
   const avgHold=mkt.books.reduce((a,b)=>a+holdPct(b.probs),0)/mkt.books.length;
+  const nStale=mkt.books.filter(b=>b.stale).length;
   wrap.appendChild(el('h4',null,esc(title)));
   wrap.appendChild(el('div','hold',
-    `${mkt.books.length} books on this number · average hold ${avgHold.toFixed(2)}%`+
+    `${mkt.books.length} books on this number${nStale?` (${nStale} stale, left out of fair price)`:''} · average hold ${avgHold.toFixed(2)}%`+
     (cons?` · fair ${mkt.labels.map((l,i)=>`${esc(l)} ${fmtAm(probToAm(cons.fair[i]))}`).join('  /  ')}`:'')));
 
   // deviation scale, one per outcome
@@ -1099,7 +1292,7 @@ function marketBlock(mkt,title,c){
   });
   mkt.books.forEach((b,j)=>{
     const tr=el('tr');
-    tr.innerHTML=`<td>${esc(b.title)}${SHARP.includes(b.key)?' <span class="tag reft">sharp</span>':''}</td>`+
+    tr.innerHTML=`<td>${esc(b.title)}${SHARP.includes(b.key)?' <span class="tag reft">sharp</span>':''}${b.stale?` <span class="tag warnt" title="Not updated for ${b.lagMin} min while other books moved">stale ${b.lagMin}m</span>`:''}</td>`+
       mkt.labels.map((_,i)=>`<td class="num">${fmtAm(b.prices[i])}${bestIdx[i]===j?' <span class="tag best">best</span>':''}</td>`).join('')+
       `<td class="num">${holdPct(b.probs).toFixed(2)}%</td>`;
     t.appendChild(tr);
@@ -1107,6 +1300,219 @@ function marketBlock(mkt,title,c){
   stack(t); tb.appendChild(t); wrap.appendChild(tb);
   return wrap;
 }
+
+
+/* ============================================================
+   SECTION 16 — game context (all free, no credits)
+
+   ESPN scoreboard  -> venue, indoor flag, ESPN event id, final scores
+   ESPN core odds   -> DraftKings opening vs current line = movement
+   ESPN injuries    -> who is out, and WHEN they were listed
+   ESPN news        -> team-tagged headlines
+   Open-Meteo       -> wind and rain at kickoff for outdoor games
+
+   None of this predicts games. It explains prices: an "edge" next to
+   a fresh Out, a big line move, or 20 mph wind is usually a slow book
+   reacting late, not a gift. Every fetch fails quietly — context is a
+   bonus, never a reason the main screens stop working.
+   ============================================================ */
+S.ctx = { events:{}, injuries:{}, news:[], loadedAt:null, errors:[] };
+const ESPN='https://site.api.espn.com/apis/site/v2/sports/football/nfl';
+const norm = t => String(t||'').toLowerCase().replace(/[^a-z0-9]/g,'');
+const STATES={AL:'Alabama',AZ:'Arizona',CA:'California',CO:'Colorado',FL:'Florida',GA:'Georgia',IL:'Illinois',
+  IN:'Indiana',LA:'Louisiana',MD:'Maryland',MA:'Massachusetts',MI:'Michigan',MN:'Minnesota',MO:'Missouri',
+  NV:'Nevada',NJ:'New Jersey',NY:'New York',NC:'North Carolina',OH:'Ohio',PA:'Pennsylvania',TN:'Tennessee',
+  TX:'Texas',WA:'Washington',WI:'Wisconsin'};
+
+async function getJSON(url, label){
+  const t0=performance.now();
+  try{
+    const r=await fetch(url);
+    if(!r.ok){ dbg('warn',`${label}: HTTP ${r.status}`); return null; }
+    const j=await r.json(); dbg('info',`${label}: ok in ${Math.round(performance.now()-t0)} ms`); return j;
+  }catch(e){ dbg('warn',`${label}: ${e.message}`); return null; }
+}
+
+function matchGame(home,away){
+  return S.games.find(g=>norm(g.home_team)===norm(home)&&norm(g.away_team)===norm(away));
+}
+
+async function loadContext(){
+  if(!S.games.length) return;
+  const [sb,inj,news]=await Promise.all([
+    getJSON(`${ESPN}/scoreboard`,'ESPN scoreboard'),
+    getJSON(`${ESPN}/injuries`,'ESPN injuries'),
+    getJSON(`${ESPN}/news?limit=50`,'ESPN news')
+  ]);
+  const events={};
+  (sb?.events||[]).forEach(e=>{
+    const c=e.competitions?.[0]; if(!c) return;
+    const h=c.competitors.find(x=>x.homeAway==='home'), a=c.competitors.find(x=>x.homeAway==='away');
+    const g=matchGame(h?.team?.displayName,a?.team?.displayName); if(!g) return;
+    events[g.id]={espnId:e.id, indoor:!!c.venue?.indoor, venue:c.venue?.fullName,
+      city:c.venue?.address?.city, state:c.venue?.address?.state, kickoff:e.date,
+      home:h.team.displayName, away:a.team.displayName};
+  });
+  S.ctx.events=events;
+
+  const injuries={};
+  (inj?.injuries||[]).forEach(t=>{
+    injuries[norm(t.displayName)]=(t.injuries||[]).map(i=>({
+      who:i.athlete?.displayName||'', pos:i.athlete?.position?.abbreviation||'',
+      status:i.status||'', date:i.date||null, comment:i.shortComment||'', team:t.displayName}));
+  });
+  S.ctx.injuries=injuries;
+
+  S.ctx.news=(news?.articles||[]).map(a=>({headline:a.headline, published:a.published,
+    link:a.links?.web?.href||null,
+    teams:(a.categories||[]).filter(c=>c.type==='team').map(c=>norm(c.description))}));
+  S.ctx.loadedAt=new Date();
+  afterScan();
+
+  // openers and weather are per game, so they come second and re-render again
+  await Promise.all(Object.entries(events).map(async([gid,ev])=>{
+    const od=await getJSON(`https://sports.core.api.espn.com/v2/sports/football/leagues/nfl/events/${ev.espnId}/competitions/${ev.espnId}/odds`,'ESPN odds '+ev.espnId);
+    const it=(od?.items||[])[0];
+    if(it){
+      const num=v=>{ const n=parseFloat(String(v??'').replace(/[^\d.+-]/g,'')); return isFinite(n)?n:null; };
+      ev.line={ provider:it.provider?.name||'ESPN',
+        spreadOpen:num(it.homeTeamOdds?.open?.pointSpread?.american),
+        spreadNow:num(it.homeTeamOdds?.current?.pointSpread?.american),
+        totalOpen:num(it.open?.total?.american), totalNow:num(it.current?.total?.american),
+        mlOpen:num(it.homeTeamOdds?.open?.moneyLine?.american), mlNow:num(it.homeTeamOdds?.current?.moneyLine?.american) };
+    }
+    if(!ev.indoor && ev.city) ev.weather=await kickoffWeather(ev);
+  }));
+  afterScan();
+}
+
+async function kickoffWeather(ev){
+  try{
+    const geoKey='geo_'+norm(ev.city+ev.state);
+    let geo=load(geoKey,null);
+    if(!geo){
+      const j=await getJSON(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(ev.city)}&count=5&countryCode=US`,'Open-Meteo geocode');
+      const want=STATES[ev.state]||ev.state;
+      const hit=(j?.results||[]).find(r=>r.admin1===want)||(j?.results||[])[0];
+      if(!hit) return null;
+      geo={lat:hit.latitude,lon:hit.longitude}; store(geoKey,geo);
+    }
+    const ko=new Date(ev.kickoff);
+    const days=(ko-Date.now())/864e5;
+    if(days>15||days<-0.2) return null;                       // outside forecast range
+    const w=await getJSON(`https://api.open-meteo.com/v1/forecast?latitude=${geo.lat}&longitude=${geo.lon}`
+      +`&hourly=wind_speed_10m,wind_gusts_10m,precipitation_probability,temperature_2m`
+      +`&wind_speed_unit=mph&temperature_unit=fahrenheit&timezone=UTC&forecast_days=16`,'Open-Meteo forecast');
+    const h=w?.hourly; if(!h?.time) return null;
+    const target=ko.toISOString().slice(0,13);                // "YYYY-MM-DDTHH"
+    let i=h.time.findIndex(t=>t.slice(0,13)===target);
+    if(i<0) return null;
+    // the game lasts ~3 hours: take the worst wind across it
+    const span=[i,i+1,i+2].filter(k=>k<h.time.length);
+    return { wind:Math.max(...span.map(k=>h.wind_speed_10m[k]??0)),
+             gust:Math.max(...span.map(k=>h.wind_gusts_10m?.[k]??0)),
+             rain:Math.max(...span.map(k=>h.precipitation_probability?.[k]??0)),
+             temp:h.temperature_2m?.[i] };
+  }catch(e){ dbg('warn','Weather: '+e.message); return null; }
+}
+
+/* Context notes for one price. kind: injury | move | wind | news | stale
+   level: warn = probably explains the "edge"; info = worth knowing */
+function ctxFlags(r){
+  const out=[], ev=S.ctx.events[r.gameId], g=S.games.find(x=>x.id===r.gameId);
+  if(!g) return out;
+  const teams=[g.home_team,g.away_team];
+  const freshH=48*3600e3, now=Date.now();
+  // injuries: listed Out/Doubtful within 48h
+  teams.forEach(t=>{
+    (S.ctx.injuries[norm(t)]||[]).forEach(i=>{
+      const fresh=i.date && now-Date.parse(i.date)<freshH;
+      const serious=/out|doubtful/i.test(i.status);
+      const isThePlayer=r.who && norm(r.who)===norm(i.who);
+      if(isThePlayer) out.push({kind:'injury',level:'warn',text:`${i.who} is listed ${i.status}`});
+      else if(fresh&&serious&&!r.who) out.push({kind:'injury',level:'warn',
+        text:`Fresh injury: ${i.who} (${i.pos}, ${t.split(' ').pop()}) ${i.status} — often a slow book, not an edge`});
+    });
+  });
+  // line movement since open
+  const L=ev?.line;
+  if(L){
+    if(r.mkey==='spreads'||r.mkey==='h2h'){
+      if(L.spreadOpen!=null&&L.spreadNow!=null&&Math.abs(L.spreadNow-L.spreadOpen)>=1.5){
+        const fav=L.spreadNow<0?g.home_team:g.away_team;
+        out.push({kind:'move',level:'info',text:`Spread moved ${Math.abs(L.spreadNow-L.spreadOpen)} pts since open (${g.home_team.split(' ').pop()} ${fmtSpread(L.spreadOpen)} → ${fmtSpread(L.spreadNow)})`});
+      }
+    }
+    if(r.mkey==='totals'&&L.totalOpen!=null&&L.totalNow!=null&&Math.abs(L.totalNow-L.totalOpen)>=1.5)
+      out.push({kind:'move',level:'info',text:`Total moved ${L.totalOpen} → ${L.totalNow} since open`});
+  }
+  // wind matters for totals and passing/receiving props
+  const W=ev?.weather;
+  if(W && W.wind>=15 && (r.mkey==='totals'||/pass|reception|receptions/.test(r.mkey||'')))
+    out.push({kind:'wind',level:'warn',text:`Wind ${Math.round(W.wind)} mph, gusts ${Math.round(W.gust)} at kickoff — hurts passing and totals`});
+  // recent news
+  const recent=S.ctx.news.filter(n=>now-Date.parse(n.published)<6*3600e3 && n.teams.some(t=>teams.map(norm).includes(t)));
+  if(recent.length) out.push({kind:'news',level:'info',text:`${recent.length} news stor${recent.length===1?'y':'ies'} in the last 6 hours`, news:recent});
+  return out;
+}
+const fmtSpread=v=>v==null?'—':(v>0?'+'+v:String(v));
+
+
+/* ---------- Injuries & News screen ---------- */
+function renderGlance(){
+  const host=$('#glance-out'); if(!host) return;
+  if(!S.games.length){ return; }
+  const t=el('table');
+  t.innerHTML=`<tr><th>Game</th><th>Spread since open</th><th>Total since open</th><th>Kickoff weather</th><th>Fresh Out / Doubtful</th></tr>`;
+  S.games.forEach(g=>{
+    const ev=S.ctx.events[g.id], L=ev?.line, W=ev?.weather;
+    const now=Date.now();
+    const fresh=[g.home_team,g.away_team].flatMap(tm=>(S.ctx.injuries[norm(tm)]||[])
+      .filter(i=>/out|doubtful/i.test(i.status)&&i.date&&now-Date.parse(i.date)<48*3600e3)
+      .map(i=>`${i.who} (${tm.split(' ').pop()})`));
+    const mv=(a,b)=>a==null||b==null?'—':(a===b?`${a} (no move)`:`${a} → <b>${b}</b>`);
+    const home=g.home_team.split(' ').pop();
+    t.appendChild(el('tr',null,`<td>${esc(g.away_team)} at ${esc(g.home_team)}</td>
+      <td>${L?`${esc(home)} ${mv(fmtSpread(L.spreadOpen),fmtSpread(L.spreadNow))}`:'—'}</td>
+      <td>${L?mv(L.totalOpen,L.totalNow):'—'}</td>
+      <td>${ev?.indoor?'Indoors':W?`${Math.round(W.wind)} mph wind${W.wind>=15?' <span class="tag warnt">windy</span>':''}, ${Math.round(W.temp??0)}°F, ${W.rain}% rain`:'—'}</td>
+      <td>${fresh.length?esc(fresh.join(', ')):'none'}</td>`));
+  });
+  stack(t); host.innerHTML=''; const sc=el('div','scroll'); sc.appendChild(t); host.appendChild(sc);
+  host.appendChild(el('p','note',`Opening and current lines are DraftKings', via ESPN. A move of 3 or more points on a spread usually means real news. Weather comes from Open-Meteo and only shows within about two weeks of kickoff.`));
+}
+
+function renderNews(){
+  const host=$('#news-out'); if(!host||!S.ctx.news.length) return;
+  host.innerHTML=S.ctx.news.slice(0,25).map(n=>{
+    const ago=Math.round((Date.now()-Date.parse(n.published))/3600e3);
+    return `<div style="padding:7px 0;border-bottom:1px solid var(--rule-soft)">
+      ${n.link?`<a href="${esc(n.link)}" target="_blank" rel="noopener" style="color:var(--ink)">${esc(n.headline)}</a>`:esc(n.headline)}
+      <small style="display:block;color:var(--muted)">${ago<1?'just now':ago+'h ago'}</small></div>`;}).join('');
+}
+
+function fillSkyTeams(){
+  const sel=$('#sky-team'); if(!sel) return;
+  const teams=[...new Set(S.games.flatMap(g=>[g.home_team,g.away_team]))].sort();
+  sel.innerHTML='<option value="">Pick a team</option>'+teams.map(t=>`<option>${esc(t)}</option>`).join('');
+}
+$('#sky-go').addEventListener('click',async()=>{
+  const team=$('#sky-team').value, topic=$('#sky-topic').value, host=$('#sky-out');
+  if(!team){ host.innerHTML='<div class="err">Pick a team first.</div>'; return; }
+  const short=team.split(' ').pop();
+  host.innerHTML='<span class="spin"></span> Searching…';
+  const j=await getJSON(`https://api.bsky.app/xrpc/app.bsky.feed.searchPosts?q=${encodeURIComponent(short+' '+topic)}&sort=latest&limit=15`,'Bluesky search');
+  const posts=(j?.posts||[]).filter(p=>p.record?.text);
+  if(!posts.length){ host.innerHTML='<div class="empty">Nothing recent. Quiet is normal.</div>'; return; }
+  host.innerHTML=posts.map(p=>{
+    const ago=Math.round((Date.now()-Date.parse(p.indexedAt||p.record.createdAt))/3600e3);
+    const handle=p.author?.handle||'unknown', id=(p.uri||'').split('/').pop();
+    return `<div style="padding:8px 0;border-bottom:1px solid var(--rule-soft);font-size:13.5px">
+      ${esc(p.record.text).slice(0,400)}
+      <small style="display:block;color:var(--muted);margin-top:3px">@${esc(handle)} · ${ago<1?'just now':ago+'h ago'} ·
+      <a href="https://bsky.app/profile/${encodeURIComponent(handle)}/post/${encodeURIComponent(id)}" target="_blank" rel="noopener">open</a></small></div>`;}).join('')
+    + '<p class="note" style="margin-top:8px">Unverified. If it matters, confirm it on ESPN or the team\'s official account before acting.</p>';
+});
 
 /* ============================================================
    SECTION 6 — edges
@@ -1137,6 +1543,58 @@ function allQuotes(){
   return out;
 }
 
+
+/* ---------- "Open in FanDuel" ----------
+   Exact bet links come from the odds provider when the book supplies them
+   (includeLinks). Otherwise fall back to the book's NFL page for the two
+   books the user actually uses. Never an affiliate redirect. */
+const BOOK_NFL={fanduel:'https://sportsbook.fanduel.com/navigation/nfl',
+                draftkings:'https://sportsbook.draftkings.com/leagues/football/nfl'};
+function betLink(r){
+  if(r.link) return {href:r.link, exact:true};
+  if(BOOK_NFL[r.bookKey]) return {href:BOOK_NFL[r.bookKey], exact:false};
+  return null;
+}
+function linkFor(gameId,mkey,bookKey,outIdx){
+  const g=S.games.find(x=>x.id===gameId); if(!g) return null;
+  const m=collectMarket(g,mkey,{includeStale:true}); if(!m) return null;
+  const b=m.books.find(x=>x.key===bookKey); return b?.links?.[outIdx]||null;
+}
+
+/* Plain-English card for one price. Used on Best Prices and My Sportsbooks. */
+function betCards(rows, host, opts){
+  const c=cfg();
+  host.innerHTML='';
+  rows.forEach((r,i)=>{
+    const st=stakeFor(r.pFair,r.dec,c.bank,c.mult,c.cap);
+    r.link = r.link || linkFor(r.gameId,r.mkey,r.bookKey,r.outIdx);
+    const L=betLink(r), flags=ctxFlags(r);
+    const cents=(r.ev*100).toFixed(1);
+    const what = r.mkey==='h2h'?`${r.sel} to win`:r.mkey==='spreads'?`${r.sel} spread`:r.mkey==='totals'?`${r.sel} total points`:r.sel;
+    const card=el('div','betcard');
+    card.innerHTML=`
+      <div class="hl"><b>${esc(what)}</b><span class="big pos">${fmtAm(r.price)}</span></div>
+      <div class="meta">${esc(r.game)} · ${esc(r.book)}${SHARP.includes(r.bookKey)?' <span class="tag reft">sharp</span>':''}</div>
+      <p class="say">The fair price is <b>${fmtAm(probToAm(r.pFair))}</b>, so ${esc(r.book)} is paying more than it should.
+        Worth about <b>${cents}¢</b> per dollar long run. Suggested bet <b>$${st.amount.toFixed(2)}</b>.</p>
+      ${flags.length?`<div class="flags" role="list">${flags.map(f=>`<div class="flag ${f.level}" role="listitem">${f.level==='warn'?'⚠︎ ':''}${esc(f.text)}</div>`).join('')}</div>`:''}
+      <div class="acts">
+        ${L?`<a class="btn sm" href="${esc(L.href)}" target="_blank" rel="noopener" aria-label="Open ${esc(r.book)}${L.exact?' to this bet':' NFL page'}">${L.exact?'Open bet in':'Open'} ${esc(r.book)}</a>`:''}
+        <button class="btn ghost sm" data-clog="${i}">Log bet</button>
+        ${opts&&opts.parlay!==false?`<button class="btn ghost sm" data-cadd="${i}">+ Parlay</button>`:''}
+      </div>`;
+    host.appendChild(card);
+  });
+  host.querySelectorAll('[data-clog]').forEach(b=>b.addEventListener('click',()=>{
+    logBet(rows[+b.dataset.clog]); b.textContent='Logged'; b.disabled=true; }));
+  host.querySelectorAll('[data-cadd]').forEach(b=>b.addEventListener('click',()=>{
+    const r=rows[+b.dataset.cadd];
+    S.legs.push({desc:`${r.sel} — ${r.market}`,sub:`${r.game} · ${r.book}`,
+      decOffered:r.dec,pFair:r.pFair,price:r.price,gameId:r.gameId,
+      mkey:r.mkey,sel:r.sel,market:r.market,game:r.game,book:r.book,bookKey:r.bookKey});
+    renderLegs(); b.textContent='Added'; b.disabled=true; }));
+}
+
 function renderEdges(){
   const c=cfg(), host=$('#edges-out');
   const rows=allQuotes().filter(r=>r.ev>c.minev).sort((a,b)=>b.ev-a.ev);
@@ -1146,6 +1604,15 @@ function renderEdges(){
     host.innerHTML=`<div class="empty">No price cleared your ${pct(c.minev,0)} threshold.<br>
       That is the normal result on a well-traded board, and it is information: the market agrees with itself right now.
       Widen the regions on Setup to add books, or lower the threshold.</div>`;
+    return;
+  }
+  if(($('#edgeview')?.value||'cards')==='cards'){
+    const nWarn=rows.filter(r=>ctxFlags(r).some(f=>f.level==='warn')).length;
+    const wrap=el('div');
+    if(nWarn) host.innerHTML=`<p class="note">${nWarn} of these ${rows.length} come with a warning — read those before betting.</p>`;
+    else host.innerHTML='';
+    host.appendChild(wrap); betCards(rows.slice(0,60), wrap);
+    host.appendChild(el('p','note',`Showing ${Math.min(rows.length,60)} of ${rows.length}, best first. Switch to the table in Settings → Display for every number.`));
     return;
   }
   const t=el('table');
@@ -1305,6 +1772,10 @@ function renderMyEdges(){
     host.innerHTML = head + `<div class="empty">Nothing at your books clears ${pct(c.minev,0)} right now.<br>
       That is the normal result most days. It is the tool working, not failing.</div>`;
     return;
+  }
+  if(($('#edgeview')?.value||'cards')==='cards'){
+    host.innerHTML = head; const wrap=el('div'); host.appendChild(wrap);
+    betCards(mine.slice(0,60), wrap); return;
   }
   const t = el('table');
   t.innerHTML = `<tr><th>Game</th><th>Market</th><th>Selection</th><th>Book</th>
@@ -1795,6 +2266,68 @@ function logBet(r){
   saveBets(); renderCLV(); renderSteps();
 }
 
+
+/* ---------- automatic grading from ESPN final scores ----------
+   Game lines only. Props are not graded: matching a prop to a box score
+   needs player-name matching that would be wrong often enough to poison
+   the record, so they stay manual. Free — ESPN, no credits. */
+function gradeLine(bet, home, away, hs, as){
+  const parts=String(bet.game||'').split(' at ');
+  if(parts.length!==2) return null;
+  const score=t=>norm(t)===norm(home)?hs:norm(t)===norm(away)?as:null;
+  if(bet.mkey==='h2h'){
+    const mine=score(bet.sel), other=norm(bet.sel)===norm(home)?as:hs;
+    if(mine==null) return null;
+    return mine>other?'win':mine<other?'loss':'push';
+  }
+  if(bet.mkey==='spreads'){
+    const m=String(bet.sel).match(/^(.*) ([+-]?\d+(?:\.\d+)?)$/); if(!m) return null;
+    const mine=score(m[1]); if(mine==null) return null;
+    const other=norm(m[1])===norm(home)?as:hs, adj=mine+parseFloat(m[2])-other;
+    return adj>0?'win':adj<0?'loss':'push';
+  }
+  if(bet.mkey==='totals'){
+    const m=String(bet.sel).match(/^(Over|Under) (\d+(?:\.\d+)?)$/); if(!m) return null;
+    const tot=hs+as, line=parseFloat(m[2]);
+    if(tot===line) return 'push';
+    return (m[1]==='Over')===(tot>line)?'win':'loss';
+  }
+  return null;
+}
+
+async function autoGrade(quiet){
+  const due=S.bets.filter(b=>!b.result && !b.noAuto && ['h2h','spreads','totals'].includes(b.mkey)
+    && b.commence && Date.now()-Date.parse(b.commence)>3.5*3600e3);
+  if(!due.length){ if(!quiet) msg('#clv-msg','ok','Nothing to grade — no finished game-line bets waiting.'); return 0; }
+  // ESPN scoreboards are dated in US Eastern; check the day either side too
+  const days=new Set();
+  due.forEach(b=>{ const t=Date.parse(b.commence)-5*3600e3;
+    [-1,0,1].forEach(d=>days.add(new Date(t+d*864e5).toISOString().slice(0,10).replace(/-/g,''))); });
+  const finals=[];
+  for(const d of days){
+    const sb=await getJSON(`${ESPN}/scoreboard?dates=${d}`,'ESPN scores '+d);
+    (sb?.events||[]).forEach(e=>{
+      if(!e.status?.type?.completed) return;
+      const c=e.competitions[0], h=c.competitors.find(x=>x.homeAway==='home'), a=c.competitors.find(x=>x.homeAway==='away');
+      finals.push({home:h.team.displayName, away:a.team.displayName, hs:+h.score, as:+a.score});
+    });
+  }
+  let n=0;
+  due.forEach(b=>{
+    const [away,home]=String(b.game).split(' at ');
+    const f=finals.find(x=>norm(x.home)===norm(home)&&norm(x.away)===norm(away));
+    if(!f) return;
+    const r=gradeLine(b,f.home,f.away,f.hs,f.as);
+    if(r){ b.result=r; b.graded='auto'; b.final=`${f.away} ${f.as}, ${f.home} ${f.hs}`; n++; }
+  });
+  if(n){ saveBets(); renderCLV(); renderSteps(); }
+  dbg('info',`Auto-grade: ${n} of ${due.length} due bets graded`);
+  if(!quiet) msg('#clv-msg', n?'ok':'warnbox', n
+    ? `Graded ${n} bet${n===1?'':'s'} from final scores. Tap undo on any that look wrong.`
+    : `${due.length} bet${due.length===1?' is':'s are'} waiting, but no matching final score was found yet.`);
+  return n;
+}
+
 /* Re-read every open bet's price from the current scan. */
 function captureCloses(){
   if(!S.bets.length || !S.games.length) return;
@@ -1889,20 +2422,24 @@ function renderCLV(){
        <td class="num ${c ? (c.priceCLV>0?'pos':'neg') : ''}">${c ? (c.priceCLV>0?'+':'')+c.priceCLV.toFixed(2)+'%' : '—'}</td>
        <td class="num ${c ? (c.evAtClose>0?'pos':'neg') : ''}">${c ? (c.evAtClose>0?'+':'')+pct(c.evAtClose) : '—'}</td>
        <td class="num">$${b.stake.toFixed(2)}</td>
-       <td>${b.result ? `<span class="tag ${b.result==='win'?'best':'warnt'}">${b.result}</span>` : ''}</td>
+       <td>${b.result ? `<span class="tag ${b.result==='win'?'best':'warnt'}">${b.result}</span>${b.graded==='auto'?`<small style="display:block;color:var(--muted)">auto · ${esc(b.final||'')}</small>`:''}` : ''}</td>
        <td>${b.result ? `<button class="btn ghost sm" data-unset="${b.id}">undo</button>`
           : `<button class="btn ghost sm" data-win="${b.id}">W</button>
              <button class="btn ghost sm" data-loss="${b.id}">L</button>
              <button class="btn ghost sm" data-push="${b.id}">P</button>`}
-           <button class="btn ghost sm" data-del="${b.id}">×</button></td>`));
+           <button class="btn ghost sm" data-del="${b.id}" aria-label="Delete this bet">×</button></td>`));
   });
   stack(t); list.innerHTML = ''; const sc = el('div','scroll'); sc.appendChild(t); list.appendChild(sc);
-  list.appendChild(el('p','note','Grade bets yourself with W / L / P. Results are secondary — the CLV column is the one that tells you something early.'));
+  list.appendChild(el('p','note','Moneyline, spread and total bets grade themselves from final scores — tap Grade finished games, or it runs when you open this screen. Player props still need W / L / P by hand. Results are secondary; the CLV column tells you something sooner.'));
 
   const set = (attr, val) => list.querySelectorAll(`[data-${attr}]`).forEach(btn =>
     btn.addEventListener('click', () => {
       const b = S.bets.find(x => x.id === btn.dataset[attr]);
-      if(b){ b.result = val; saveBets(); renderCLV(); }
+      if(b){
+        if(val===null && b.graded==='auto') b.noAuto=true;   // user overrode it: don't regrade
+        b.result = val; b.graded = val===null ? null : 'manual';
+        saveBets(); renderCLV();
+      }
     }));
   set('win','win'); set('loss','loss'); set('push','push'); set('unset', null);
   list.querySelectorAll('[data-del]').forEach(btn => btn.addEventListener('click', () => {
@@ -1911,7 +2448,9 @@ function renderCLV(){
 }
 
 /* ---- backup: the log must never be trapped in a phone browser ---- */
+$('#clv-grade').addEventListener('click', () => autoGrade(false));
 $('#clv-export').addEventListener('click', () => {
+  store('last_export', new Date().toISOString());
   const blob = new Blob([JSON.stringify({exported:new Date().toISOString(), bets:S.bets}, null, 2)],
     {type:'application/json'});
   const a = document.createElement('a');
@@ -2416,6 +2955,189 @@ $('#bl-clearsel').addEventListener('click',()=>{ S.blGames=[]; renderBuilderGame
 renderMarketChips();
 renderBuilderGames();
 
+
+/* ============================================================
+   SECTION 17 — diagnostics
+
+   dbg() is the app-wide log. Errors anywhere on the page land here too,
+   so a blank panel on the phone leaves a trace instead of nothing.
+   selfTests() is pure: known answers worked out by hand, so a wrong
+   result means the code is wrong, not the data.
+   ============================================================ */
+function dbg(level, text){
+  const log = (window.__dbg = window.__dbg || load('dbg_log', []));
+  log.unshift({t:new Date().toISOString(), level, text:String(text).slice(0,300)});
+  if(log.length>200) log.length=200;
+  store('dbg_log', log);
+  if(document.getElementById('dbg-log') && document.getElementById('p-debug')?.classList.contains('on')) renderDbgLog();
+}
+window.addEventListener('error', e=>dbg('error', `${e.message} @ line ${e.lineno}`));
+window.addEventListener('unhandledrejection', e=>dbg('error', 'Promise: '+(e.reason?.message||e.reason)));
+
+function renderDbgLog(){
+  const log=window.__dbg||load('dbg_log',[]);
+  $('#dbg-log').innerHTML = log.length ? log.map(e=>
+    `<div style="color:${e.level==='error'?'var(--neg)':e.level==='warn'?'var(--warn)':'var(--muted)'}">${esc(e.t.slice(5,19).replace('T',' '))} ${esc(e.level.toUpperCase())} ${esc(e.text)}</div>`).join('')
+    : '<span style="color:var(--muted)">Nothing logged yet.</span>';
+}
+
+function selfTests(){
+  const R=[], near=(a,b,t=1e-6)=>Math.abs(a-b)<t;
+  const T=(name,ok,detail)=>R.push({group:'Maths',name,status:ok?'pass':'fail',detail:detail||''});
+  T('−110 converts to 1.9091 decimal', near(amToDec(-110),1+100/110));
+  T('+150 converts to 2.50 decimal', near(amToDec(150),2.5));
+  const q=[1/amToDec(-110),1/amToDec(-110)];
+  T('Book cut on −110/−110 is 4.55%', near(holdPct(q),4.545454,1e-5), holdPct(q).toFixed(4)+'%');
+  ['power','multiplicative','additive','shin'].forEach(m=>{
+    const f=devig(q,m); T(`Fair price method "${m}" gives 50/50 on an even game`, near(f[0],.5)&&near(f[0]+f[1],1));
+  });
+  const p5=parlay(Array.from({length:5},()=>({decOffered:amToDec(-110),pFair:.5})));
+  T('5-leg parlay house edge is 20.75%', near(p5.holdOnTicket,20.75296,1e-4), p5.holdOnTicket.toFixed(3)+'%');
+  T('Kelly on a fair coin at +110 is 4.55%', near(kellyFraction(.5,amToDec(110)),.05/1.1));
+  T('Weighted median = ordinary median when weights equal',
+    near(wmedian([1,2,3,4],[1,1,1,1]),2.5) && near(wmedian([1,2,3],[1,1,1]),2));
+  T('Sharp book weight pulls the reference toward it', near(wmedian([.50,.51,.52,.60],[1,1,1,5]),.60));
+  T('Sure-bet finder spots +110 / +110', arbScan([{dec:amToDec(110)},{dec:amToDec(110)}]).isArb===true);
+  T('Sure-bet finder ignores −110 / −110', arbScan([{dec:amToDec(-110)},{dec:amToDec(-110)}]).isArb===false);
+  T('SGP blocks moneyline + same team spread', !sgpCompatible({gameId:1,mkey:'h2h',team:'A',sel:'A'},{gameId:1,mkey:'spreads',team:'A',point:-3.5,sel:'A -3.5'}));
+  T('SGP blocks underdog ML + favourite spread', !sgpCompatible({gameId:1,mkey:'h2h',team:'B',sel:'B'},{gameId:1,mkey:'spreads',team:'A',point:-3.5,sel:'A -3.5'}));
+  T('SGP allows favourite ML + underdog getting points', sgpCompatible({gameId:1,mkey:'h2h',team:'A',sel:'A'},{gameId:1,mkey:'spreads',team:'B',point:3.5,sel:'B +3.5'}));
+  T('Grader: +3.5 losing by 3 is a win', gradeLine({game:'B at A',mkey:'spreads',sel:'B +3.5'},'A','B',20,17)==='win');
+  T('Grader: total landing on the number is a push', gradeLine({game:'B at A',mkey:'totals',sel:'Over 37'},'A','B',20,17)==='push');
+  T('Grader: Under 44.5 with 45 points is a loss', gradeLine({game:'B at A',mkey:'totals',sel:'Under 44.5'},'A','B',24,21)==='loss');
+  const now=Date.now(), iso=t=>new Date(t).toISOString();
+  const g={id:'x',home_team:'A',away_team:'B',bookmakers:[1,2,3].map(i=>({key:'b'+i,title:'B'+i,
+    markets:[{key:'h2h',last_update:iso(now-(i===3?40:1)*60000),outcomes:[{name:'A',price:-110},{name:'B',price:-110}]}]}))};
+  const sm=staleMins();
+  const m=collectMarket(g,'h2h');
+  T(`A book 40 min behind is left out (limit ${sm||'off'})`, sm===0 ? m.books.length===3 : m.books.length===2 && m.stale.length===1,
+    `${m.books.length} fresh, ${m.stale.length} stale`);
+  return R;
+}
+
+function dataChecks(){
+  const R=[], A=(name,status,detail)=>R.push({group:"Today's prices",name,status,detail:detail||''});
+  if(!S.games.length){ A('Prices loaded','skip','No scan yet — run one on Today\'s Games.'); return R; }
+  const ageMin=Math.round((Date.now()-S.scanned)/60000);
+  A('Prices loaded', ageMin>180?'warn':'pass', `${S.games.length} games, scanned ${ageMin} min ago${ageMin>180?' — getting old':''}`);
+  let impossible=0, neg=0, high=[], thin=0, stale=0, sums=0, links=0, outs=0, started=0;
+  S.games.forEach(g=>{
+    if(Date.parse(g.commence_time)<Date.now()) started++;
+    ['h2h','spreads','totals'].forEach(mk=>{
+      const all=collectMarket(g,mk,{includeStale:true}); if(!all) return;
+      stale+=all.stale.length;
+      all.books.forEach(b=>{
+        b.prices.forEach((pr,i)=>{ outs++; if(b.links?.[i]) links++; if(!isFinite(pr)||Math.abs(pr)<100) impossible++; });
+        const h=holdPct(b.probs);
+        if(h<0) neg++; if(h>12) high.push(`${b.title} ${g.home_team.split(' ').pop()} ${mk} ${h.toFixed(1)}%`);
+      });
+      const m=collectMarket(g,mk); if(!m) return;
+      if(m.books.length<3) thin++;
+      const cons=consensusFair(m.books.map(b=>({key:b.key,probs:b.probs})),cfg().method);
+      if(cons && cfg().method!=='worst' && Math.abs(cons.fair.reduce((a,b)=>a+b,0)-1)>1e-9) sums++;
+    });
+  });
+  A('Every price is a real number', impossible?'fail':'pass', impossible?`${impossible} impossible prices (between −100 and +100, or blank)`:`${outs} prices checked`);
+  A('Fair prices add up to 100%', sums?'fail':'pass', sums?`${sums} markets off`:'every market');
+  A('No book is giving money away', neg?'warn':'pass', neg?`${neg} book markets have a negative cut — usually a stale price`:'');
+  A('No unusually greedy prices', high.length?'warn':'pass', high.length?`${high.length} over 12% cut: ${high.slice(0,3).join('; ')}`:'');
+  A('Enough books to trust the fair price', thin?'warn':'pass', thin?`${thin} markets have fewer than 3 fresh books`:'');
+  A('Stale prices filtered', 'pass', stale?`${stale} book markets left out for lagging`:'none lagging right now');
+  A('Games already started', started?'warn':'pass', started?`${started} on the board have kicked off — their prices may be live-game prices`:'');
+  A('Direct bet links', links?'pass':'warn', links?`${links} of ${outs} prices (${Math.round(100*links/outs)}%) have a link`:'none returned — buttons fall back to the FanDuel / DraftKings NFL page');
+  if(S.scanCost) A('Scan cost matches what it should', isFinite(S.scanCost.actual)&&S.scanCost.actual>S.scanCost.expected?'warn':'pass',
+    `charged ${isFinite(S.scanCost.actual)?S.scanCost.actual:'?'}, expected ${S.scanCost.expected}${isFinite(S.scanCost.actual)&&S.scanCost.actual>S.scanCost.expected?' — direct links may cost extra; turn them off in Settings → Display':''}`);
+  const matched=Object.keys(S.ctx.events).length;
+  A('ESPN matched to the board', !S.ctx.loadedAt?'skip':matched===S.games.length?'pass':'warn',
+    !S.ctx.loadedAt?'context not loaded yet':`${matched} of ${S.games.length} games${matched<S.games.length?' — unmatched games have no injury, line-move or weather notes':''}`);
+  return R;
+}
+
+function storageChecks(){
+  const R=[], A=(name,status,detail)=>R.push({group:'Your saved data',name,status,detail:detail||''});
+  try{ localStorage.setItem('__t','1'); const ok=localStorage.getItem('__t')==='1'; localStorage.removeItem('__t');
+    A('Browser storage works', ok?'pass':'fail', ok?'':'Your key and bets cannot be saved — check Safari isn\'t in Private mode');
+  }catch(e){ A('Browser storage works','fail','Blocked: '+e.message+' — Private Browsing?'); }
+  let bytes=0; try{ for(let i=0;i<localStorage.length;i++){ const k=localStorage.key(i); bytes+=k.length+(localStorage.getItem(k)||'').length; } }catch(e){}
+  A('Storage used', bytes>4e6?'warn':'pass', `${(bytes/1024).toFixed(0)} KB of about 5,000 KB`);
+  A('API key saved', S.key?'pass':'warn', S.key?'yes':'no — add it in Settings');
+  const badBets=S.bets.filter(b=>!b.id||!isFinite(b.dec)||!isFinite(b.stake));
+  A('Bet log is readable', badBets.length?'fail':'pass', `${S.bets.length} bets${badBets.length?`, ${badBets.length} damaged`:''}`);
+  const ungraded=S.bets.filter(b=>!b.result&&b.commence&&Date.now()-Date.parse(b.commence)>3.5*3600e3);
+  A('Finished bets graded', ungraded.length?'warn':'pass', ungraded.length?`${ungraded.length} finished but ungraded — tap Grade finished games on My Bets`:'');
+  const badT=(S.blTickets||[]).filter(t=>!Array.isArray(t.legs)||t.legs.some(l=>!isFinite(l.decOffered)));
+  A('Saved parlays are readable', badT.length?'fail':'pass', `${(S.blTickets||[]).length} tickets${badT.length?`, ${badT.length} damaged`:''}`);
+  const lastExport=load('last_export',null);
+  const days=lastExport?Math.round((Date.now()-Date.parse(lastExport))/864e5):null;
+  A('Bet log backed up recently', S.bets.length&&(days===null||days>21)?'warn':'pass',
+    !S.bets.length?'no bets to back up':days===null?'never exported — tap Export log on My Bets':`last export ${days} day${days===1?'':'s'} ago`);
+  return R;
+}
+
+async function connectionChecks(){
+  const R=[];
+  const ping=async(name,url,opts)=>{
+    const t0=performance.now();
+    try{ const r=await fetch(url,opts||{}); const ms=Math.round(performance.now()-t0);
+      R.push({group:'Connections',name,status:r.ok?(ms>4000?'warn':'pass'):'fail',detail:`HTTP ${r.status} in ${ms} ms`});
+      return r;
+    }catch(e){ R.push({group:'Connections',name,status:'fail',detail:'Unreachable — '+e.message}); return null; }
+  };
+  const ev=Object.values(S.ctx.events)[0];
+  await Promise.all([
+    S.key ? ping('Odds provider (free check)',`https://api.the-odds-api.com/v4/sports/?apiKey=${encodeURIComponent(S.key)}`).then(r=>r&&readQuota(r))
+          : Promise.resolve(R.push({group:'Connections',name:'Odds provider',status:'skip',detail:'no key saved'})),
+    ping('ESPN scores',`${ESPN}/scoreboard`),
+    ping('ESPN injuries',`${ESPN}/injuries`),
+    ping('ESPN news',`${ESPN}/news?limit=1`),
+    ev ? ping('ESPN opening lines',`https://sports.core.api.espn.com/v2/sports/football/leagues/nfl/events/${ev.espnId}/competitions/${ev.espnId}/odds`)
+       : Promise.resolve(R.push({group:'Connections',name:'ESPN opening lines',status:'skip',detail:'needs a scan first'})),
+    ping('Open-Meteo weather','https://api.open-meteo.com/v1/forecast?latitude=39.9&longitude=-75.17&current=wind_speed_10m'),
+    ping('Bluesky','https://api.bsky.app/xrpc/app.bsky.feed.searchPosts?q=NFL&limit=1'),
+    ping('Historical games (GitHub CDN)','https://cdn.jsdelivr.net/gh/nflverse/nfldata@master/data/games.csv',{method:'HEAD'})
+  ]);
+  return R;
+}
+
+let lastReport=[];
+async function runDiagnostics(){
+  $('#dbg-summary').innerHTML='<span class="spin"></span> Checking…';
+  const R=[...selfTests(), ...dataChecks(), ...storageChecks(), ...(await connectionChecks())];
+  lastReport=R;
+  const c={pass:0,fail:0,warn:0,skip:0}; R.forEach(r=>c[r.status]++);
+  dbg(c.fail?'error':c.warn?'warn':'info', `Diagnostics: ${c.pass} pass, ${c.warn} warn, ${c.fail} fail`);
+  $('#dbg-summary').innerHTML=`<div class="${c.fail?'err':c.warn?'warnbox':'ok'}"><b>${c.fail?`${c.fail} problem${c.fail===1?'':'s'} found`:c.warn?'Working, with things to look at':'Everything checks out'}</b> — ${c.pass} passed, ${c.warn} to look at, ${c.fail} failed${c.skip?`, ${c.skip} skipped`:''}.</div>`;
+  const groups=[...new Set(R.map(r=>r.group))];
+  const order={fail:0,warn:1,pass:2,skip:3};
+  $('#dbg-out').innerHTML=groups.map(gname=>`<h4 style="margin:14px 0 4px;font-size:13.5px">${esc(gname)}</h4>`+
+    R.filter(r=>r.group===gname).sort((a,b)=>order[a.status]-order[b.status]).map(r=>
+      `<div class="dbg-row"><span class="st ${r.status}">${r.status.toUpperCase()}</span><span>${esc(r.name)}${r.detail?`<span class="d">${esc(r.detail)}</span>`:''}</span></div>`).join('')).join('');
+  renderDbgLog();
+}
+
+function reportText(){
+  const lines=[`NFL Edge Terminal ${BUILD} — diagnostics report`, `Time: ${new Date().toString()}`,
+    `Device: ${navigator.userAgent}`, `Regions: ${S.regions.join(',')}  Books: ${S.myBooks.join(',')}`,
+    `Scan: ${S.scanned?S.scanned.toISOString():'none'}  Games: ${S.games.length}  Credits left: ${S.quota?.remaining??'?'}`, ''];
+  (lastReport.length?lastReport:[{group:'',name:'Checks not run yet',status:'skip',detail:''}]).forEach(r=>
+    lines.push(`[${r.status.toUpperCase()}] ${r.group} — ${r.name}${r.detail?' — '+r.detail:''}`));
+  lines.push('', 'Recent log:');
+  (window.__dbg||load('dbg_log',[])).slice(0,40).forEach(e=>lines.push(`${e.t} ${e.level} ${e.text}`));
+  return lines.join('\n');     // never includes the API key
+}
+
+$('#dbg-run').addEventListener('click',runDiagnostics);
+$('#dbg-clear').addEventListener('click',()=>{ window.__dbg=[]; store('dbg_log',[]); renderDbgLog(); });
+$('#dbg-copy').addEventListener('click',async()=>{
+  const txt=reportText();
+  try{ await navigator.clipboard.writeText(txt); msg('#dbg-summary','ok','Report copied. Paste it into your chat with Claude.'); }
+  catch(e){
+    const ta=el('textarea'); ta.value=txt; ta.style.cssText='width:100%;height:220px;font-family:var(--mono);font-size:11px';
+    $('#dbg-summary').innerHTML='<div class="warnbox">Couldn\'t copy automatically. Press and hold in the box below → Select All → Copy.</div>';
+    $('#dbg-summary').appendChild(ta); ta.focus(); ta.select();
+  }
+});
+
 /* ============================================================
    SECTION 14 — Start Here
 
@@ -2459,8 +3181,34 @@ function renderSteps(){
 }
 renderSteps();
 
+/* ============================================================
+   SECTION 18 — boot
+   ============================================================ */
+function applyTextSize(){
+  const z=+($('#textsize')?.value||1);
+  document.body.style.zoom = z===1 ? '' : String(z);
+}
+$('#textsize').addEventListener('change',applyTextSize);
+applyTextSize();
+document.querySelectorAll('[id$="-msg"]').forEach(e=>{ e.setAttribute('role','status'); e.setAttribute('aria-live','polite'); });
+
+// Reopen on the last scan instead of spending credits. Prices older than
+// 12 hours are too stale to show as current, so those aren't restored.
+(function restoreLastScan(){
+  const last=load('last_scan',null);
+  if(!last||!Array.isArray(last.games)||!last.games.length) return;
+  const at=new Date(last.at), age=(Date.now()-at)/3600e3;
+  if(!(age<12)) return;
+  S.games=last.games; S.scanned=at;
+  afterScan();
+  msg('#board-msg','ok',`Showing your last scan from ${at.toLocaleTimeString([],{hour:'numeric',minute:'2-digit'})} — free. Scan again for fresh prices.`);
+  dbg('info',`Restored scan from ${last.at} (${last.games.length} games)`);
+  loadContext();
+})();
+if(S.bets.some(b=>!b.result&&b.commence&&Date.now()-Date.parse(b.commence)>3.5*3600e3)) autoGrade(true);
+
 /* re-render on config change */
-['bankroll','kellymult','cap','minev','devigm','refmode'].forEach(id=>
+['bankroll','kellymult','cap','minev','devigm','refmode','sharpw','stalemin','edgeview'].forEach(id=>
   $('#'+id).addEventListener('change',()=>{ if(S.games.length){renderBoard();renderEdges();renderMine();renderArb();} }));
 </script>
 </body>
