@@ -1,0 +1,80 @@
+#!/usr/bin/env python3
+"""Build a bounded historical NFL player box-score dataset from public ESPN endpoints.
+
+Uses previous completed weeks, avoids current incomplete games, and never fabricates
+observations. A single weekly snapshot is not a calibrated predictive model.
+"""
+import importlib.util
+import json
+from datetime import datetime, timedelta, timezone
+from pathlib import Path
+from urllib.parse import urlencode
+
+spec = importlib.util.spec_from_file_location("fetch_players", "scripts/fetch_players.py")
+players = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(players)
+
+OUTPUT = Path("data/history.json")
+WEEKS_BACK = 6
+MAX_GAMES = 18
+MAX_ROWS = 1500
+
+
+def recent_completed_events(today, fetch):
+    found = {}
+    # ESPN's dates query is a bounded scoreboard window, not a historical database.
+    for weeks_ago in range(1, WEEKS_BACK + 1):
+        day = (today - timedelta(weeks=weeks_ago)).strftime("%Y%m%d")
+        url = players.SCOREBOARD + "?" + urlencode({"dates": day, "limit": 100})
+        try:
+            board = fetch(url)
+        except Exception:
+            continue
+        for event in board.get("events", []):
+            if ((event.get("status") or {}).get("type") or {}).get("state") != "post":
+                continue
+            event_id = str(event.get("id", ""))
+            if event_id:
+                found[event_id] = event
+    return sorted(found.values(), key=lambda event: event.get("date", ""), reverse=True)[:MAX_GAMES]
+
+
+def assemble(events, fetch):
+    rows = []
+    games = 0
+    for event in events:
+        try:
+            summary = fetch(players.SUMMARY + "?" + urlencode({"event": event["id"]}))
+            extracted = players.extract(event, summary)
+            if extracted:
+                rows.extend(extracted)
+                games += 1
+        except Exception:
+            continue
+        if len(rows) >= MAX_ROWS:
+            break
+    return rows[:MAX_ROWS], games
+
+
+def main():
+    OUTPUT.parent.mkdir(parents=True, exist_ok=True)
+    now = datetime.now(timezone.utc)
+    try:
+        events = recent_completed_events(now, players.fetch)
+        rows, games = assemble(events, players.fetch)
+        result = {
+            "status": "ok" if rows else "no_history",
+            "checked_at": now.isoformat(),
+            "source": "ESPN public NFL completed game box scores",
+            "games": games,
+            "rows": rows,
+            "limitations": "Bounded sample from recent completed weeks; not full season coverage or calibrated predictions."
+        }
+    except Exception:
+        result = {"status": "fetch_failed", "checked_at": now.isoformat(), "source": "ESPN public NFL completed game box scores", "games": 0, "rows": []}
+    OUTPUT.write_text(json.dumps(result, indent=2))
+    print(f"Historical box scores: {result['status']}; {result['games']} games; {len(result['rows'])} rows")
+
+
+if __name__ == "__main__":
+    main()
