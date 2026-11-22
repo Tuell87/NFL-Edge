@@ -1,0 +1,10 @@
+const test=require('node:test');const assert=require('node:assert/strict');const fs=require('node:fs');
+const html=fs.readFileSync('home-next.html','utf8');const index=fs.readFileSync('index.html','utf8');const workflow=fs.readFileSync('.github/workflows/pages.yml','utf8');
+test('mobile game day page',()=>assert.match(html,/name="viewport"/));
+test('scoreboard snapshot fetch',()=>assert.match(html,/data\/games\.json/));
+test('odds snapshot fetch',()=>assert.match(html,/data\/odds\.json/));
+test('honest forecast status',()=>assert.match(html,/Independent player predictions are still in development/));
+test('text-only safe rendering',()=>assert.doesNotMatch(html,/innerHTML/));
+test('game day accessible from existing app',()=>assert.match(index,/href="\.\/home-next\.html"/));
+test('scoreboard job',()=>assert.match(workflow,/python3 scripts\/fetch_games\.py/));
+test('scoreboard published',()=>assert.match(workflow,/cp data\/games\.json _site\/data\/games\.json/));
