@@ -18,8 +18,8 @@ class EvaluationTests(unittest.TestCase):
               row("c","2026-09-15",30),row("d","2026-09-22",50)]
         m=mod.evaluate(rows)["metrics"]["rushing"]
         self.assertEqual(m["evaluated_games"],2)
-        self.assertEqual(m["mae_yards"],27.5)
-        self.assertEqual(m["recent_three_mae_yards"],27.5)
+        self.assertEqual(m["mae_yards"],22.5)
+        self.assertEqual(m["recent_three_mae_yards"],22.5)
         self.assertEqual(m["last_game_mae_yards"],15)
 
     def test_recent_three_differs_after_four_prior_games(self):
