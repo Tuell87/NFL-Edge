@@ -1,0 +1,10 @@
+const test=require('node:test');const assert=require('node:assert/strict');const fs=require('node:fs');
+const html=fs.readFileSync('market.html','utf8');const index=fs.readFileSync('index.html','utf8');const workflow=fs.readFileSync('.github/workflows/pages.yml','utf8');
+test('market comparison mobile viewport',()=>assert.match(html,/name="viewport"/));
+test('both sides required',()=>{assert.match(html,/id="yes"/);assert.match(html,/id="no"/);});
+test('normalized no-vig computation',()=>assert.match(html,/a\/total\*100/));
+test('underround flagged',()=>assert.match(html,/total<1/));
+test('not represented as independent prediction',()=>assert.match(html,/not an independent prediction/));
+test('no external script or provider keys',()=>{assert.doesNotMatch(html,/<script[^>]+src=/);assert.doesNotMatch(html,/api\.the-odds-api\.com|localStorage/);});
+test('navigation linked',()=>assert.match(index,/href="\.\/market\.html"/));
+test('deploy allowlists market',()=>assert.match(workflow,/cp market\.html _site\/market\.html/));
