@@ -48,9 +48,13 @@ def evaluate(rows):
             if len(prior) < MIN_TRAIN_GAMES:
                 continue
             estimate = sum(prior) / len(prior)
+            recent = sum(prior[-3:]) / len(prior[-3:])
+            last_game = prior[-1]
             predictions.append({"category": category, "date": date,
                                 "actual": actual, "predicted": round(estimate, 4),
-                                "absolute_error": round(abs(actual - estimate), 4),
+                                "absolute_error": abs(actual - estimate),
+                                "recent_three_error": abs(actual - recent),
+                                "last_game_error": abs(actual - last_game),
                                 "training_games": len(prior)})
     metrics = {}
     for category in ("rushing", "receiving"):
@@ -58,6 +62,8 @@ def evaluate(rows):
         metrics[category] = {
             "evaluated_games": len(subset),
             "mae_yards": round(sum(p["absolute_error"] for p in subset) / len(subset), 2) if subset else None,
+            "recent_three_mae_yards": round(sum(p["recent_three_error"] for p in subset) / len(subset), 2) if subset else None,
+            "last_game_mae_yards": round(sum(p["last_game_error"] for p in subset) / len(subset), 2) if subset else None,
         }
     return {"evaluated_games": len(predictions), "metrics": metrics}
 
@@ -70,7 +76,7 @@ def main():
         result.update({"status": "ok" if result["evaluated_games"] else "insufficient_data",
                        "history_checked_at": data.get("checked_at"),
                        "source": "ESPN observed box scores",
-                       "method": "Chronological expanding prior-game mean; 2+ prior games",
+                       "method": "Paired chronological evaluation: expanding prior-game mean, last-three mean, and last-game value; 2+ prior games",
                        "limitations": "Tiny, bounded, nonrandom game sample. No opponent or injury adjustment; no calibration, win probability, or betting value."})
     except Exception:
         result = {"status": "unavailable", "evaluated_games": 0, "metrics": {},
