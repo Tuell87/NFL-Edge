@@ -16,26 +16,37 @@ spec.loader.exec_module(players)
 
 OUTPUT = Path("data/history.json")
 WEEKS_BACK = 6
-MAX_GAMES = 18
-MAX_ROWS = 1500
+MAX_GAMES = 36
+MAX_ROWS = 3000
+# NFL regular-season games commonly occur on Thursday, Sunday and Monday.
+GAME_WEEKDAYS = (3, 6, 0)
 
 
 def recent_completed_events(today, fetch):
     found = {}
-    # ESPN's dates query is a bounded scoreboard window, not a historical database.
-    for weeks_ago in range(1, WEEKS_BACK + 1):
-        day = (today - timedelta(weeks=weeks_ago)).strftime("%Y%m%d")
-        url = players.SCOREBOARD + "?" + urlencode({"dates": day, "limit": 100})
-        try:
-            board = fetch(url)
-        except Exception:
-            continue
-        for event in board.get("events", []):
-            if ((event.get("status") or {}).get("type") or {}).get("state") != "post":
+    # Anchor weeks on the latest *completed* Sunday, rather than the run day.
+    # Sampling only the run's weekday previously missed most NFL games.
+    sunday = today.date() - timedelta(days=(today.weekday() - 6) % 7)
+    if today.weekday() == 6:
+        sunday -= timedelta(days=7)  # Today's games may not be completed.
+    for weeks_ago in range(WEEKS_BACK):
+        week_sunday = sunday - timedelta(weeks=weeks_ago)
+        for weekday in GAME_WEEKDAYS:
+            offset = (weekday - 6) % 7
+            if weekday == 3:
+                offset = -3  # Thursday preceding that Sunday
+            day = (week_sunday + timedelta(days=offset)).strftime("%Y%m%d")
+            url = players.SCOREBOARD + "?" + urlencode({"dates": day, "limit": 100})
+            try:
+                board = fetch(url)
+            except Exception:
                 continue
-            event_id = str(event.get("id", ""))
-            if event_id:
-                found[event_id] = event
+            for event in board.get("events", []):
+                if ((event.get("status") or {}).get("type") or {}).get("state") != "post":
+                    continue
+                event_id = str(event.get("id", ""))
+                if event_id:
+                    found[event_id] = event
     return sorted(found.values(), key=lambda event: event.get("date", ""), reverse=True)[:MAX_GAMES]
 
 
@@ -68,7 +79,7 @@ def main():
             "source": "ESPN public NFL completed game box scores",
             "games": games,
             "rows": rows,
-            "limitations": "Bounded sample from recent completed weeks; not full season coverage or calibrated predictions."
+            "limitations": "Bounded Thursday/Sunday/Monday sampling from six recent completed NFL weeks; excludes unusual game days, not full-season coverage or calibrated predictions."
         }
     except Exception:
         result = {"status": "fetch_failed", "checked_at": now.isoformat(), "source": "ESPN public NFL completed game box scores", "games": 0, "rows": []}
