@@ -1,0 +1,10 @@
+const test = require('node:test');
+const assert = require('node:assert/strict');
+const fs = require('node:fs');
+const html = fs.readFileSync('index.html', 'utf8');
+test('responsive viewport', () => assert.match(html, /name="viewport"/));
+test('demo disclaimer', () => assert.match(html, /DEMO • NO LIVE ODDS/));
+test('unverified sportsbook handoff disabled', () => assert.match(html, /<button disabled[^>]*>Send to FanDuel/));
+test('touchdown lab present', () => assert.match(html, /Touchdown Lab/));
+test('betslip present', () => assert.match(html, /My Betslip/));
+test('no direct odds provider browser calls', () => assert.doesNotMatch(html, /api\.the-odds-api\.com/));
