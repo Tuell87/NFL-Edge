@@ -1,0 +1,10 @@
+const test=require('node:test');const assert=require('node:assert/strict');const fs=require('node:fs');
+const html=fs.readFileSync('compare.html','utf8');const home=fs.readFileSync('home-next.html','utf8');const workflow=fs.readFileSync('.github/workflows/pages.yml','utf8');
+test('mobile comparison page',()=>assert.match(html,/name="viewport"/));
+test('reads baseline snapshot',()=>assert.match(html,/data\/baseline\.json/));
+test('reads FanDuel odds snapshot',()=>assert.match(html,/data\/odds\.json/));
+test('no prediction claims',()=>assert.match(html,/not predictive probabilities/));
+test('no unsafe HTML insertion',()=>assert.doesNotMatch(html,/innerHTML/));
+test('linked from home',()=>assert.match(home,/href="\.\/compare\.html"/));
+test('baseline built during deployment',()=>assert.match(workflow,/python3 scripts\/build_baseline\.py/));
+test('baseline published',()=>assert.match(workflow,/cp data\/baseline\.json _site\/data\/baseline\.json/));
