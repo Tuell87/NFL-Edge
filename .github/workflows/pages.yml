@@ -20,7 +20,7 @@ jobs:
       - name: Static release checks
         run: python3 scripts/check_release.py
       - name: Odds collector offline tests
-        run: python3 -m unittest discover -s tests -p "test_odds*.py"
+        run: python3 -m unittest discover -s tests -p "test_*.py"
       - name: UI smoke tests
         run: node --test tests/*.test.cjs
   deploy:
