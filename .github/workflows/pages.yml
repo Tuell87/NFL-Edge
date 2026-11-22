@@ -38,6 +38,7 @@ jobs:
           mkdir -p _site
           cp index.html _site/index.html
           cp workbench.html _site/workbench.html
+          cp market.html _site/market.html
           cp 404.html _site/404.html
           touch _site/.nojekyll
       - uses: actions/upload-pages-artifact@v4
