@@ -41,6 +41,8 @@ jobs:
         env:
           ODDS_API_KEY: ${{ secrets.ODDS_API_KEY }}
         run: python3 scripts/fetch_odds.py
+      - name: Collect free NFL scoreboard
+        run: python3 scripts/fetch_games.py
       - name: Publish only approved static files
         run: |
           mkdir -p _site
@@ -48,8 +50,10 @@ jobs:
           cp workbench.html _site/workbench.html
           cp market.html _site/market.html
           cp odds.html _site/odds.html
+          cp home-next.html _site/home-next.html
           mkdir -p _site/data
           cp data/odds.json _site/data/odds.json
+          cp data/games.json _site/data/games.json
           cp 404.html _site/404.html
           touch _site/.nojekyll
       - uses: actions/upload-pages-artifact@v4
