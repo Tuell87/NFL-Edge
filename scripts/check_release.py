@@ -8,7 +8,7 @@ legacy = (root / "legacy-demo.html").read_text(encoding="utf-8")
 errors = []
 if "DEMO • NO LIVE ODDS" not in legacy:
     errors.append("Missing demo disclaimer")
-if "Send to FanDuel — not connected" not in html:
+if "Send to FanDuel — not connected" not in legacy:
     errors.append("Unverified sportsbook transfer must be disabled")
 if re.search(r'<script[^>]+src=["\']https?://', html + legacy, re.I):
     errors.append("External scripts are not allowed")
