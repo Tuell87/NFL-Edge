@@ -1,0 +1,10 @@
+const test=require('node:test');const assert=require('node:assert/strict');const fs=require('node:fs');
+const html=fs.readFileSync('odds.html','utf8');const index=fs.readFileSync('index.html','utf8');const workflow=fs.readFileSync('.github/workflows/pages.yml','utf8');
+test('mobile odds board exists',()=>assert.match(html,/name="viewport"/));
+test('connection status explicit',()=>assert.match(html,/not connected yet/));
+test('safe text rendering',()=>assert.match(html,/textContent=x\.player/));
+test('no credentials in browser',()=>assert.doesNotMatch(html,/apiKey=|ODDS_API_KEY.*value|localStorage/));
+test('home links to feed',()=>assert.match(index,/href="\.\/odds\.html"/));
+test('scheduled workflow',()=>assert.match(workflow,/schedule:/));
+test('server-only secret',()=>assert.match(workflow,/secrets\.ODDS_API_KEY/));
+test('static feed published',()=>assert.match(workflow,/cp data\/odds\.json _site\/data\/odds\.json/));
