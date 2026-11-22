@@ -5,6 +5,6 @@ test('scoreboard snapshot fetch',()=>assert.match(html,/data\/games\.json/));
 test('odds snapshot fetch',()=>assert.match(html,/data\/odds\.json/));
 test('honest forecast status',()=>assert.match(html,/Independent player predictions are still in development/));
 test('text-only safe rendering',()=>assert.doesNotMatch(html,/innerHTML/));
-test('game day accessible from existing app',()=>assert.match(index,/href="\.\/home-next\.html"/));
+test('game day is default home',()=>assert.match(index,/NFL Games/));
 test('scoreboard job',()=>assert.match(workflow,/python3 scripts\/fetch_games\.py/));
 test('scoreboard published',()=>assert.match(workflow,/cp data\/games\.json _site\/data\/games\.json/));
