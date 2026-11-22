@@ -45,6 +45,8 @@ jobs:
         run: python3 scripts/fetch_games.py
       - name: Collect free NFL player box scores
         run: python3 scripts/fetch_players.py
+      - name: Collect historical NFL player results
+        run: python3 scripts/fetch_history.py
       - name: Publish only approved static files
         run: |
           mkdir -p _site
@@ -54,10 +56,12 @@ jobs:
           cp odds.html _site/odds.html
           cp home-next.html _site/home-next.html
           cp players.html _site/players.html
+          cp history.html _site/history.html
           mkdir -p _site/data
           cp data/odds.json _site/data/odds.json
           cp data/games.json _site/data/games.json
           cp data/players.json _site/data/players.json
+          cp data/history.json _site/data/history.json
           cp 404.html _site/404.html
           touch _site/.nojekyll
       - uses: actions/upload-pages-artifact@v4
