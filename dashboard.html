@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#0b1220"><title>NFL-Edge | Project Command Center</title>
+<style>
+:root{font-family:system-ui,-apple-system,sans-serif;color:#e9f2ff;background:#0b1220}*{box-sizing:border-box}body{margin:0}main{max-width:1000px;margin:auto;padding:22px 16px 70px}header{display:flex;justify-content:space-between;gap:12px;align-items:center}h1{font-size:clamp(25px,5vw,38px);margin:12px 0}h2{font-size:18px;margin:0 0 16px}.muted,small{color:#9db0c5}a{color:#4ee1ad}a.button,button{display:inline-block;background:#167d61;color:white;padding:12px 15px;border:0;border-radius:10px;text-decoration:none;font-weight:700;cursor:pointer}.secondary{background:#23374d!important}.actions{display:flex;gap:10px;flex-wrap:wrap;margin:20px 0}.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}.panel{background:#152338;border:1px solid #304158;border-radius:16px;padding:18px;margin:15px 0}.stat{font-size:30px;font-weight:800;color:#4ee1ad}.progress{height:12px;border-radius:20px;background:#34445b;overflow:hidden}.progress>div{height:100%;width:45%;background:#4ee1ad}.row{display:flex;justify-content:space-between;gap:12px;align-items:center;border-bottom:1px solid #304158;padding:12px 0}.row:last-child{border:0}.tag{font-size:12px;padding:5px 9px;background:#294059;border-radius:20px}.good{color:#4ee1ad}.warn{color:#ffd28a}.error{color:#ff9898}#status{margin:10px 0}.items{list-style:none;padding:0;margin:0}.items li{padding:12px 0;border-bottom:1px solid #304158}.items li:last-child{border:0}footer{margin-top:25px;font-size:12px;color:#9db0c5}@media(max-width:560px){.grid{grid-template-columns:1fr 1fr}.grid .panel:last-child{grid-column:1/-1}.stat{font-size:25px}}
+</style></head><body><main>
+<header><div><small>NFL-EDGE 2.0 / ENGINEERING</small><h1>Project Command Center</h1></div><span class="tag" id="connection">Loading</span></header>
+<p class="muted">A live view of public GitHub project activity. Predictions and sportsbook odds are not connected.</p>
+<div class="grid"><section class="panel"><small>Roadmap estimate</small><div class="stat">45%</div><div class="progress" role="progressbar" aria-valuenow="45" aria-valuemin="0" aria-valuemax="100" aria-label="Estimated roadmap progress"><div></div></div></section><section class="panel"><small>Open pull requests</small><div class="stat" id="open-prs">—</div></section><section class="panel"><small>Last refresh</small><div id="refresh-time" class="stat" style="font-size:16px">Not yet</div></section></div>
+<div class="actions"><button id="refresh" type="button">Refresh GitHub</button><a class="button secondary" href="https://github.com/Tuell87/NFL-Edge/issues/new?template=blank&title=Feature%20request%3A%20" target="_blank" rel="noopener noreferrer">Request a change</a><a class="button secondary" href="https://github.com/Tuell87/NFL-Edge/blob/main/NFL-EDGE-PROJECT-TRACKER.md" target="_blank" rel="noopener noreferrer">Full roadmap</a></div>
+<p id="status" role="status" aria-live="polite">Connecting to GitHub…</p>
+<section class="panel"><h2>Development milestones</h2><div class="row"><span>Foundation and release safeguards</span><span class="tag good">Merged</span></div><div class="row"><span>Project roadmap</span><span class="tag good">Merged</span></div><div class="row"><span>GitHub Pages production deployment</span><span class="tag warn">Not verified</span></div><div class="row"><span>Licensed odds and NFL data</span><span class="tag">Not connected</span></div><div class="row"><span>Validated prediction accuracy</span><span class="tag">Not established</span></div></section>
+<section class="panel"><h2>Open pull requests</h2><ul id="prs" class="items"><li class="muted">Loading public pull requests…</li></ul></section>
+<section class="panel"><h2>Recent workflow runs</h2><ul id="runs" class="items"><li class="muted">Loading GitHub Actions…</li></ul><p><a href="https://github.com/Tuell87/NFL-Edge/actions" target="_blank" rel="noopener noreferrer">Open all Actions runs</a></p></section>
+<footer>Read-only dashboard: change requests open GitHub's authenticated issue form; this page never stores credentials or directly modifies code. GitHub API requests may be rate-limited or unavailable. Roadmap percentage is a planning estimate, not automatically calculated from pull requests. The public dashboard is not a private project-management system.</footer>
+</main><script>
+'use strict';
+const root='https://api.github.com/repos/Tuell87/NFL-Edge';
+const $=id=>document.getElementById(id);
+function clear(node){node.replaceChildren()}
+function item(container,label,url,detail){const li=document.createElement('li');const a=document.createElement('a');a.href=url;a.target='_blank';a.rel='noopener noreferrer';a.textContent=label;li.append(a);if(detail){const s=document.createElement('small');s.textContent=' — '+detail;li.append(s)}container.append(li)}
+async function get(path){const response=await fetch(root+path,{headers:{Accept:'application/vnd.github+json'}});if(!response.ok)throw Error('GitHub API HTTP '+response.status);return response.json()}
+async function refresh(){
+ $('refresh').disabled=true;$('status').textContent='Refreshing public GitHub activity…';
+ const results=await Promise.allSettled([get('/pulls?state=open&per_page=30'),get('/actions/runs?per_page=5')]);
+ let success=0;const errors=[];
+ const p=results[0];clear($('prs'));
+ if(p.status==='fulfilled'){success++;$('open-prs').textContent=p.value.length===30?'30+':String(p.value.length);if(!p.value.length)$('prs').textContent='No open pull requests';for(const x of p.value)item($('prs'),'#'+x.number+' '+x.title,x.html_url,'Open');}else{$('prs').textContent='Pull requests unavailable';errors.push('pull requests')}
+ const a=results[1];clear($('runs'));
+ if(a.status==='fulfilled'){success++;const runs=a.value.workflow_runs||[];if(!runs.length)$('runs').textContent='No workflow runs returned';for(const x of runs)item($('runs'),x.name,x.html_url,(x.conclusion||x.status)+' · '+x.event);}else{$('runs').textContent='Workflow runs unavailable';errors.push('workflow runs')}
+ $('connection').textContent=success===2?'Connected':success?'Partial data':'Offline';
+ $('connection').className='tag '+(success===2?'good':'warn');
+ $('refresh-time').textContent=new Date().toLocaleTimeString([], {hour:'numeric',minute:'2-digit'});
+ $('status').textContent=errors.length?'Some data unavailable ('+errors.join(', ')+'). Use GitHub links for verified status.':'Latest public GitHub results loaded.';
+ $('refresh').disabled=false;
+}
+$('refresh').addEventListener('click',refresh);refresh();
+</script></body></html>
