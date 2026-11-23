@@ -39,8 +39,13 @@ The project includes descriptive player baselines, chronological and season-sepa
 | #52 | Indexed, leakage-safe opponent-model lookups |
 | #53 | Raw-history cache separation, larger merge cap, corrected coverage denominator |
 | #54 | Exact deployed commit verification and stronger JSON contracts |
+| #62 | FanDuel market eligibility diagnostics distinguish unsupported prop types from other join failures |
+| #63 | 2025 archive restore and save cache keys aligned |
+| #64–#66 | Five-tab homepage, compact player statistics, and deduplicated Research links |
 
 All listed PRs passed pull-request CI and were merged. Live deployment is verified separately through the Pages workflow.
+
+The FanDuel odds page displays 20 selections per page, with player and market filters, feed and bookmaker timestamps, and a game-started label for past kickoff times.
 
 ## Project structure
 
