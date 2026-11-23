@@ -59,6 +59,8 @@ The expanded matchup feed uses 20 results per page with full-dataset filters. De
 
 On 2026-11-23, the live history snapshot matched 285 of 285 completed regular-season and playoff games for each of 2024 and 2025 using the ESPN IDs in the separately published [nflverse schedule](https://github.com/nflverse/nfldata/blob/master/data/games.csv). This verifies game presence against that snapshot. Player-stat completeness and future scheduled runs require separate checks. The README documents how to repeat the audit.
 
+After expanding the schedule, 112 of 380 matchup records missing from their historical team roster appeared under exactly one other roster by stable ESPN player ID. The matchup builder now uses that current listing when both teams have fresh snapshots. It excludes conflicting multi-team listings and discloses the team source in the matchup details.
+
 ## Project structure
 
 - `.github/workflows/pages.yml` — CI, ESPN/odds collection, data evaluation, safety gates, static Pages publishing and live checks.
