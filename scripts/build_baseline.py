@@ -10,8 +10,8 @@ sample_quality = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(sample_quality)
 
 spec_observations = importlib.util.spec_from_file_location("observations", "scripts/observations.py")
-observations = importlib.util.module_from_spec(spec_observations)
-spec_observations.loader.exec_module(observations)
+observation_filter = importlib.util.module_from_spec(spec_observations)
+spec_observations.loader.exec_module(observation_filter)
 
 HISTORY = Path("data/history.json")
 OUTPUT = Path("data/baseline.json")
@@ -37,7 +37,7 @@ def parse_yards(row):
 
 def build(rows):
     groups = {}
-    for row in observations.unique_rows(rows):
+    for row in observation_filter.unique_rows(rows):
         parsed = parse_yards(row)
         if not parsed:
             continue
