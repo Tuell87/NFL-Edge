@@ -6,6 +6,7 @@ Validate actual HTTP responses, JSON structure and fail-closed recommendation
 flags. No odds API secrets are used.
 """
 import json
+import os
 import sys
 import time
 from urllib.error import HTTPError, URLError
@@ -34,7 +35,7 @@ def fetch(url, timeout=15):
         return response.read(), response.headers.get("Content-Type", "")
 
 
-def check(base=DEFAULT_BASE, get=fetch):
+def check(base=DEFAULT_BASE, get=fetch, expected_sha=None):
     errors = []
     base = base.rstrip("/") + "/"
     for path in PAGES:
@@ -52,6 +53,8 @@ def check(base=DEFAULT_BASE, get=fetch):
             if not isinstance(data, dict) or any(k not in data for k in required):
                 errors.append(f"{path}: invalid JSON contract")
                 continue
+            if path.endswith("research_status.json") and expected_sha and data.get("release_sha") != expected_sha:
+                errors.append(f"{path}: deployed release SHA does not match this workflow run")
             if path.endswith("research_status.json") and data["prediction_ready"] is not False:
                 errors.append(f"{path}: research cannot be prediction ready")
             if path.endswith("roster_quality.json") and data["prediction_ready"] is not False:
@@ -75,7 +78,7 @@ def main():
     base = sys.argv[1] if len(sys.argv) > 1 else DEFAULT_BASE
     attempts = 8
     for attempt in range(1, attempts + 1):
-        errors = check(base)
+        errors = check(base, expected_sha=os.environ.get("GITHUB_SHA"))
         if not errors:
             print("PASS: live Pages HTML, data contracts and recommendation safety verified")
             return
