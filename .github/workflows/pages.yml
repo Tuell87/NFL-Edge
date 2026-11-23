@@ -59,6 +59,8 @@ jobs:
       - name: Collect historical NFL player results
         if: steps.history_cache.outputs.cache-hit != 'true'
         run: python3 scripts/fetch_history.py
+      - name: Measure historical data completeness
+        run: python3 scripts/build_history_quality.py
       - name: Evaluate historical over-probability estimates
         run: python3 scripts/evaluate_probabilities.py
       - name: Evaluate out-of-time probability holdout
@@ -90,6 +92,7 @@ jobs:
           cp matchups.html _site/matchups.html
           cp market-audit.html _site/market-audit.html
           cp holdout.html _site/holdout.html
+          cp history-quality.html _site/history-quality.html
           mkdir -p _site/data
           cp data/odds.json _site/data/odds.json
           cp data/games.json _site/data/games.json
@@ -101,6 +104,7 @@ jobs:
           cp data/matchups.json _site/data/matchups.json
           cp data/market_audit.json _site/data/market_audit.json
           cp data/holdout.json _site/data/holdout.json
+          cp data/history_quality.json _site/data/history_quality.json
           cp 404.html _site/404.html
           touch _site/.nojekyll
       - uses: actions/upload-pages-artifact@v4
