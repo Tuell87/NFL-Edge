@@ -94,7 +94,42 @@ jobs:
         with:
           path: data/archive_2025.json
           key: nfl-season-2025-archive-v1
-      - name: Merge complete 2025 games with current history
+      - name: Restore cached 2024 NFL season archive
+        id: archive_2024_cache
+        uses: actions/cache/restore@v4
+        with:
+          path: data/archive_2024.json
+          key: nfl-season-2024-archive-v1-verified
+      - name: Collect 2024 season archive when not cached
+        if: steps.archive_2024_cache.outputs.cache-hit != 'true'
+        run: python3 scripts/fetch_archive_2024.py
+      - name: Check whether 2024 season archive is cacheable
+        id: archive_2024_quality
+        if: steps.archive_2024_cache.outputs.cache-hit != 'true'
+        run: |
+          python3 - <<'PY'
+          import json
+          import os
+          import importlib.util
+          from pathlib import Path
+          spec = importlib.util.spec_from_file_location("archive_check", "scripts/check_season_archive.py")
+          checker = importlib.util.module_from_spec(spec)
+          spec.loader.exec_module(checker)
+          try:
+              data = json.loads(Path("data/archive_2024.json").read_text())
+              valid = checker.inspect(data, expected_season=2024)["cacheable"]
+          except (OSError, ValueError, TypeError):
+              valid = False
+          with open(os.environ["GITHUB_OUTPUT"], "a") as out:
+              out.write(f"cacheable={str(valid).lower()}\n")
+          PY
+      - name: Cache usable 2024 archive for future deployments
+        if: steps.archive_2024_cache.outputs.cache-hit != 'true' && steps.archive_2024_quality.outputs.cacheable == 'true'
+        uses: actions/cache/save@v4
+        with:
+          path: data/archive_2024.json
+          key: nfl-season-2024-archive-v1-verified
+      - name: Merge complete 2024 and 2025 games with current history
         run: python3 scripts/merge_season_archive.py
       - name: Measure historical data completeness
         run: python3 scripts/build_history_quality.py
