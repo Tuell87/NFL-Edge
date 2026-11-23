@@ -44,6 +44,14 @@ def evaluate(rows):
         cut = len(days)-1
     holdout_start = days[cut]
     scores = defaultdict(list)
+    training = defaultdict(list)
+    for (_, category), games in groups.items():
+        for date, actual in games.values():
+            if date < holdout_start:
+                for line in prob.THRESHOLDS:
+                    training[(category, line)].append(int(actual > line))
+    reference = {key: (sum(values) + 2) / (len(values) + 4)
+                 for key, values in training.items() if values}
     for (_, category), games in groups.items():
         ordered = sorted(games.values(), key=lambda item: item[0])
         for date, actual in ordered:
@@ -59,9 +67,12 @@ def evaluate(rows):
     metrics = []
     for (category, line), pairs in sorted(scores.items()):
         n = len(pairs)
+        reference_p = reference.get((category, line))
         metrics.append({"category":category,"line":line,"observations":n,
                         "brier":round(sum((p-y)**2 for p,y in pairs)/n,4),
                         "reference_50_brier":round(sum((.5-y)**2 for p,y in pairs)/n,4),
+                        "training_rate_reference":round(reference_p,4) if reference_p is not None else None,
+                        "training_rate_brier":round(sum((reference_p-y)**2 for p,y in pairs)/n,4) if reference_p is not None else None,
                         "observed_over_rate":round(sum(y for _,y in pairs)/n,4),
                         "mean_estimated_probability":round(sum(p for p,_ in pairs)/n,4)})
     return {"status":"ok" if metrics else "insufficient_data",
@@ -78,7 +89,7 @@ def main():
         result["history_checked_at"]=source.get("checked_at")
     except (OSError,ValueError,TypeError):
         result={"status":"unavailable","holdout_start":None,"observations":0,"metrics":[]}
-    result["method"]="Chronological last-quarter-of-observed-game-dates holdout; fixed Beta(2,2) prior and five prior games; no tuning on holdout"
+    result["method"]="Chronological last-quarter-of-observed-game-dates holdout; fixed Beta(2,2) prior and five prior games; includes a training-period pooled-rate benchmark with the same smoothing; no tuning on holdout"
     result["limitations"]="Held-out dates are from a bounded historical sample, not a truly untouched future prospective trial. No injury, roster, opponent or sportsbook-line adjustments. Illustrative yardage thresholds; no verified betting edge."
     OUTPUT.write_text(json.dumps(result,indent=2))
     print("Out-of-time holdout:",result["status"],result["observations"])
