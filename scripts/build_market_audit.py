@@ -51,8 +51,11 @@ def build(history, odds, matchups, now):
             continue
         identity[(name, category)].add(player_id)
         groups[(name, category, player_id)][str(row["event_id"])] = (str(row["game_date"]), yards)
-    matchup_keys = {(norm(m.get("player")), m.get("market"), parse_time(m.get("game_start"))):
-                    m for m in matchups if m.get("opponent")}
+    matchup_keys = defaultdict(list)
+    for m in matchups:
+        if m.get("opponent") and m.get("player_id") and m.get("team"):
+            key = (norm(m.get("player")), m.get("market"), parse_time(m.get("game_start")))
+            matchup_keys[key].append(m)
     candidates = defaultdict(list)
     for item in odds.get("markets", []):
         category = MARKETS.get(item.get("market"))
@@ -69,7 +72,7 @@ def build(history, odds, matchups, now):
         candidates[key].append(item)
     output = []
     for key, selections in candidates.items():
-        if len(selections) != 1 or key not in matchup_keys:
+        if len(selections) != 1 or len(matchup_keys.get(key, [])) != 1:
             continue
         selection = selections[0]
         category = MARKETS[selection["market"]]
@@ -81,7 +84,12 @@ def build(history, odds, matchups, now):
         estimate = prob.estimate(previous, selection["line"])
         if estimate is None:
             continue
-        matchup = matchup_keys[key]
+        matchup = matchup_keys[key][0]
+        if str(matchup["player_id"]) not in ids:
+            continue
+        event_teams = [norm(t) for t in str(selection.get("event") or "").split(" @ ")]
+        if len(event_teams) != 2 or set(event_teams) != {norm(matchup["team"]), norm(matchup["opponent"])}:
+            continue
         output.append({"player": selection["player"], "market": selection["market"],
                        "line": selection["line"], "odds": selection["odds"],
                        "game_start": selection["commence_time"],
