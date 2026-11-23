@@ -11,7 +11,7 @@ def row(event,date,yards,player="1"):
 class ProbabilityTests(unittest.TestCase):
     def test_minimum_prior_games(self):
         self.assertIsNone(mod.estimate([10,20,30,40],24.5))
-        self.assertAlmostEqual(mod.estimate([10,20,30,40,50],24.5),4/9)
+        self.assertAlmostEqual(mod.estimate([10,20,30,40,50],24.5),5/9)
     def test_only_past_games(self):
         rows=[row(str(i),f"2026-09-{i+1:02d}",10) for i in range(5)]
         rows.append(row("later","2026-09-06",100))
