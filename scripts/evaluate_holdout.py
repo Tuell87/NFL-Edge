@@ -21,11 +21,13 @@ MIN_HOLDOUT_DATES = 4
 CALIBRATION_EDGES = (0.0, 0.2, 0.4, 0.6, 0.8, 1.0)
 MIN_BIN_OBSERVATIONS = 30
 
-def calibration_bins(scores, category_filter=None):
+def calibration_bins(scores, category_filter=None, line_filter=None):
     """Bucket held-out estimates only; never mix training outcomes into bins."""
     buckets = [[] for _ in range(len(CALIBRATION_EDGES)-1)]
-    for (category, _), pairs in scores.items():
+    for (category, line), pairs in scores.items():
         if category_filter is not None and category != category_filter:
+            continue
+        if line_filter is not None and line != line_filter:
             continue
         for probability, outcome in pairs:
             if probability is None or not 0 <= probability <= 1 or outcome not in (0, 1):
@@ -65,7 +67,7 @@ def evaluate(rows):
         dates.add(date)
     days = sorted(dates)
     if len(days) < 8:
-        return {"status":"insufficient_data","holdout_start":None,"observations":0,"metrics":[],"calibration_bins":[],"calibration_by_market":{}}
+        return {"status":"insufficient_data","holdout_start":None,"observations":0,"metrics":[],"calibration_bins":[],"calibration_by_market":{},"calibration_by_threshold":{},"calibration_by_market_threshold":{}}
     cut = max(1, int(len(days) * (1-HOLDOUT_FRACTION)))
     if cut >= len(days):
         cut = len(days)-1
@@ -115,7 +117,13 @@ def evaluate(rows):
             "metrics":metrics,
             "calibration_bins":calibration_bins(scores),
             "calibration_by_market":{category:calibration_bins(scores, category)
-                                     for category in sorted({key[0] for key in scores})}}
+                                     for category in sorted({key[0] for key in scores})},
+            "calibration_by_threshold":{str(line):calibration_bins(scores, line_filter=line)
+                                        for line in prob.THRESHOLDS},
+            "calibration_by_market_threshold":{
+                category:{str(line):calibration_bins(scores, category, line)
+                          for line in prob.THRESHOLDS}
+                for category in sorted({key[0] for key in scores})}}
 
 def main():
     OUTPUT.parent.mkdir(parents=True,exist_ok=True)
