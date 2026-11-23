@@ -37,6 +37,7 @@ def build(history, odds, matchups, now):
     if history.get("status") != "ok" or not history_checked or not timedelta(0) <= now - history_checked <= timedelta(days=3):
         return {"status": "stale_or_missing_history", "rows": []}
     groups = defaultdict(dict)
+    identity = defaultdict(set)
     for row in history.get("rows", []):
         parsed = prob.parse_yards(row)
         if not parsed or not row.get("event_id") or not row.get("game_date"):
@@ -45,7 +46,11 @@ def build(history, odds, matchups, now):
         name = norm(row.get("player"))
         if not name:
             continue
-        groups[(name, category)][str(row["event_id"])] = (str(row["game_date"]), yards)
+        player_id = str(row.get("player_id") or "").strip()
+        if not player_id:
+            continue
+        identity[(name, category)].add(player_id)
+        groups[(name, category, player_id)][str(row["event_id"])] = (str(row["game_date"]), yards)
     matchup_keys = {(norm(m.get("player")), m.get("market"), parse_time(m.get("game_start"))):
                     m for m in matchups if m.get("opponent")}
     candidates = defaultdict(list)
@@ -68,7 +73,10 @@ def build(history, odds, matchups, now):
             continue
         selection = selections[0]
         category = MARKETS[selection["market"]]
-        previous = [yards for date, yards in groups.get((key[0], category), {}).values()
+        ids = identity.get((key[0], category), set())
+        if len(ids) != 1:
+            continue  # Reject collisions between distinct athletes with the same name.
+        previous = [yards for date, yards in groups.get((key[0], category, next(iter(ids))), {}).values()
                     if parse_time(date) and parse_time(date) < parse_time(selection["commence_time"])]
         estimate = prob.estimate(previous, selection["line"])
         if estimate is None:
