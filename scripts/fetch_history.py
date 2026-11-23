@@ -18,8 +18,9 @@ OUTPUT = Path("data/history.json")
 WEEKS_BACK = 18
 MAX_GAMES = 280
 MAX_ROWS = 25000
-# NFL regular-season games commonly occur on Thursday, Sunday and Monday.
-GAME_WEEKDAYS = (3, 6, 0)
+# Query every calendar day in each sampled NFL week to include Saturday,
+# holiday, overseas and rescheduled games. Weeks run Tuesday through Monday.
+GAME_WEEKDAYS = (1, 2, 3, 4, 5, 6, 0)
 
 
 def recent_completed_events(today, fetch):
@@ -29,12 +30,13 @@ def recent_completed_events(today, fetch):
     sunday = today.date() - timedelta(days=(today.weekday() - 6) % 7)
     if today.weekday() == 6:
         sunday -= timedelta(days=7)  # Today's games may not be completed.
+    cutoff = today.astimezone(timezone.utc)
     for weeks_ago in range(WEEKS_BACK):
         week_sunday = sunday - timedelta(weeks=weeks_ago)
         for weekday in GAME_WEEKDAYS:
             offset = (weekday - 6) % 7
-            if weekday == 3:
-                offset = -3  # Thursday preceding that Sunday
+            if weekday != 6 and offset > 0:
+                offset -= 7  # Tuesday-Saturday preceding Sunday; Monday follows
             day = (week_sunday + timedelta(days=offset)).strftime("%Y%m%d")
             url = players.SCOREBOARD + "?" + urlencode({"dates": day, "limit": 100})
             try:
@@ -43,6 +45,12 @@ def recent_completed_events(today, fetch):
                 continue
             for event in board.get("events", []):
                 if ((event.get("status") or {}).get("type") or {}).get("state") != "post":
+                    continue
+                try:
+                    event_start = datetime.fromisoformat(str(event.get("date", "")).replace("Z", "+00:00"))
+                except (TypeError, ValueError):
+                    continue
+                if event_start.tzinfo is None or event_start >= cutoff:
                     continue
                 event_id = str(event.get("id", ""))
                 if event_id:
@@ -80,7 +88,7 @@ def main():
             "games": games,
             "events_discovered": len(events),
             "rows": rows,
-            "limitations": "Bounded Thursday/Sunday/Monday sampling from up to eighteen recent NFL weeks; may miss unusual game days, incomplete summaries, and early-season games. Not guaranteed full-season coverage or calibrated predictions."
+            "limitations": "Daily scoreboard sampling across up to eighteen recent NFL weeks; may miss incomplete ESPN summaries or games outside the lookback window. Not guaranteed full-season coverage or calibrated predictions."
         }
     except Exception:
         result = {"status": "fetch_failed", "checked_at": now.isoformat(), "source": "ESPN public NFL completed game box scores", "games": 0, "rows": []}
