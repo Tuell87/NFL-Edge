@@ -67,6 +67,8 @@ jobs:
         run: python3 scripts/evaluate_holdout.py
       - name: Evaluate leakage-safe opponent context adjustments
         run: python3 scripts/evaluate_opponent.py
+      - name: Evaluate out-of-time opponent adjustment holdout
+        run: python3 scripts/evaluate_opponent_holdout.py
       - name: Build descriptive historical yardage baseline
         run: python3 scripts/build_baseline.py
       - name: Evaluate chronological yardage baseline
@@ -103,6 +105,7 @@ jobs:
           cp market-audit.html _site/market-audit.html
           cp holdout.html _site/holdout.html
           cp opponent-evaluation.html _site/opponent-evaluation.html
+          cp opponent-holdout.html _site/opponent-holdout.html
           cp history-quality.html _site/history-quality.html
           cp roster-quality.html _site/roster-quality.html
           cp feed-integrity.html _site/feed-integrity.html
@@ -121,6 +124,7 @@ jobs:
           cp data/market_audit.json _site/data/market_audit.json
           cp data/holdout.json _site/data/holdout.json
           cp data/opponent_evaluation.json _site/data/opponent_evaluation.json
+          cp data/opponent_holdout.json _site/data/opponent_holdout.json
           cp data/history_quality.json _site/data/history_quality.json
           cp 404.html _site/404.html
           touch _site/.nojekyll
