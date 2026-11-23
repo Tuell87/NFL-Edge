@@ -47,6 +47,8 @@ jobs:
         run: python3 scripts/fetch_games.py
       - name: Collect free NFL player box scores
         run: python3 scripts/fetch_players.py
+      - name: Collect box scores for completed scoreboard games
+        run: python3 scripts/fetch_game_box_scores.py
       - name: Compute daily history cache key
         id: history_day
         run: echo "day=$(date -u +%Y%m%d)" >> "$GITHUB_OUTPUT"
@@ -225,6 +227,7 @@ jobs:
           cp data/odds.json _site/data/odds.json
           cp data/games.json _site/data/games.json
           cp data/players.json _site/data/players.json
+          cp data/game_box_scores.json _site/data/game_box_scores.json
           cp data/history.json _site/data/history.json
           cp data/history_search.json _site/data/history_search.json
           cp data/baseline.json _site/data/baseline.json
