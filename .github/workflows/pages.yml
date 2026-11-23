@@ -64,7 +64,7 @@ jobs:
         uses: actions/cache/restore@v4
         with:
           path: data/archive_2025.json
-          key: nfl-season-2025-archive-v1
+          key: nfl-season-2025-archive-v2-verified
       - name: Collect 2025 season archive when not cached
         if: steps.archive_cache.outputs.cache-hit != 'true'
         run: python3 scripts/fetch_season_archive.py
@@ -78,7 +78,11 @@ jobs:
           from pathlib import Path
           try:
               data = json.loads(Path("data/archive_2025.json").read_text())
-              valid = data.get("status") == "ok" and data.get("games", 0) >= 100
+              import importlib.util
+              spec = importlib.util.spec_from_file_location("archive_check", "scripts/check_season_archive.py")
+              checker = importlib.util.module_from_spec(spec)
+              spec.loader.exec_module(checker)
+              valid = checker.inspect(data)["cacheable"]
           except (OSError, ValueError, TypeError):
               valid = False
           with open(os.environ["GITHUB_OUTPUT"], "a") as out:

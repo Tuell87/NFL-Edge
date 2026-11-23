@@ -15,7 +15,7 @@ class ArchiveMergeTests(unittest.TestCase):
     def test_merge_complete_events_and_deduplicate(self):
         current = {"status": "ok", "rows": [row("new", "2026-11-01", "p1")],
                    "games": 1}
-        archive = {"status": "ok", "rows": [
+        archive = {"status": "ok", "season": 2025, "games": 2, "rows": [
             row("old", "2025-11-01", "p2"), row("old", "2025-11-01", "p3"),
             row("new", "2025-11-01", "p4")]}
         result = merge.merge(current, archive)
@@ -26,7 +26,7 @@ class ArchiveMergeTests(unittest.TestCase):
 
     def test_row_cap_never_truncates_a_game(self):
         current = {"status": "ok", "rows": [row("new", "2026-11-01", "p1")]}
-        archive = {"status": "ok", "rows": [
+        archive = {"status": "ok", "season": 2025, "games": 1, "rows": [
             row("old", "2025-11-01", "p2"), row("old", "2025-11-01", "p3")]}
         result = merge.merge(current, archive, max_rows=2)
         self.assertEqual(len(result["rows"]), 1)
@@ -39,9 +39,17 @@ class ArchiveMergeTests(unittest.TestCase):
         self.assertEqual(result["rows"], [])
         self.assertEqual(result["archive_2025_status"], "fetch_failed")
 
+    def test_reject_wrong_season_rows(self):
+        current = {"status": "ok", "rows": [row("new", "2026-11-01", "p1")]}
+        archive = {"status": "ok", "season": 2025, "games": 1,
+                   "rows": [row("bad", "2026-11-01", "p2")]}
+        result = merge.merge(current, archive)
+        self.assertEqual(result["archive_2025_status"], "unusable_or_invalid")
+        self.assertEqual(result["rows"], current["rows"])
+
     def test_current_game_rows_preserved(self):
         current = {"status": "ok", "rows": [row("current", "2026-11-01", "p1")]}
-        result = merge.merge(current, {"status": "ok", "rows": []})
+        result = merge.merge(current, {"status": "ok", "season": 2025, "games": 0, "rows": []})
         self.assertEqual(result["rows"], current["rows"])
 
 
