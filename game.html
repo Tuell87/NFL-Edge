@@ -10,6 +10,11 @@ body{margin:0}main{max-width:850px;margin:auto;padding:16px 14px 24px}
 a{color:#55e4b4}section{margin:16px 0;padding:16px;background:#152438;border-radius:10px}
 h2{margin-top:0}.muted{color:#b5c9db}li{padding-block:5px}summary{cursor:pointer;padding-block:8px}
 select{font:inherit;min-height:44px;margin-left:8px}ul{padding-left:25px}
+.scores{margin:10px 0 16px}
+.score-row{display:flex;justify-content:space-between;gap:12px;padding:7px 0;border-bottom:1px solid #34485e}
+#box-score summary{min-height:28px}
+#box-score ul{margin-top:0}
+#stat-category{max-width:100%;margin:0 0 8px;font-size:16px}
 </style>
 <link rel="stylesheet" href="./mobile-navigation.css">
 </head>
@@ -25,6 +30,20 @@ select{font:inherit;min-height:44px;margin-left:8px}ul{padding-left:25px}
   <a href="./#games">← Games</a>
   <h1 id="title">Game matchup</h1>
   <p id="game-status" role="status">Loading matchup…</p>
+  <section id="scoreboard" hidden>
+    <h2 id="score-heading">Score</h2>
+    <div id="scores" class="scores"></div>
+    <a id="espn-game" hidden>Game details on ESPN</a>
+  </section>
+  <section id="box-score" hidden>
+    <h2>Player box score</h2>
+    <p id="box-status" class="muted" role="status">Loading player stats…</p>
+    <div id="box-filter" hidden>
+      <label for="stat-category">Stat category</label>
+      <select id="stat-category"><option value="">All categories</option></select>
+    </div>
+    <div id="box-players"></div>
+  </section>
   <section id="markets" hidden>
     <h2>FanDuel odds snapshot</h2>
     <p id="odds-status" role="status"></p>
@@ -38,7 +57,7 @@ select{font:inherit;min-height:44px;margin-left:8px}ul{padding-left:25px}
     <p id="threshold-status" role="status"></p>
     <ul id="ranked"></ul>
   </section>
-  <section>
+  <section id="game-tools">
     <h2>Tools</h2>
     <a href="./workbench.html">Open Odds Workbench</a>
   </section>
@@ -121,6 +140,76 @@ async function readSnapshot(name) {
   return response.json();
 }
 
+function element(tag, text) {
+ const result = document.createElement(tag);
+ if (text !== undefined) result.textContent = text;
+ return result;
+}
+
+function showScore(game, final) {
+ $('scoreboard').hidden = false;
+ $('score-heading').textContent = final ? 'Final score' : 'Score snapshot';
+ for (const team of [game.away, game.home]) {
+  const row = element('div');
+  row.className = 'score-row';
+  row.append(element('span', team.name), element('strong', team.score ?? '—'));
+  $('scores').append(row);
+ }
+ if (/^\d+$/.test(String(game.id))) {
+  const espn = $('espn-game');
+  espn.href = 'https://www.espn.com/nfl/boxscore/_/gameId/' + game.id;
+  espn.hidden = false;
+ }
+}
+
+async function showBoxScore(game) {
+ $('box-score').hidden = false;
+ let rows;
+ try {
+  const snapshot = await readSnapshot('players');
+  rows = (snapshot.players || []).filter(row => String(row.event_id) === String(game.id));
+ } catch {
+  $('box-status').textContent = 'The player stats feed is unavailable.';
+  return;
+ }
+ if (!rows.length) {
+  $('box-status').textContent = 'Player stats for this game are outside the current snapshot.';
+  return;
+ }
+
+ const select = $('stat-category');
+ const categories = [...new Set(rows.map(row => row.category).filter(Boolean))].sort();
+ for (const category of categories) select.append(new Option(category, category));
+ $('box-filter').hidden = !categories.length;
+ function render() {
+  const groups = new Map();
+  for (const row of rows) {
+   if (select.value && row.category !== select.value) continue;
+   const key = (row.player_id || row.player) + '|' + row.team;
+   if (!groups.has(key)) groups.set(key, []);
+   groups.get(key).push(row);
+  }
+  const players = [...groups.values()].sort((a,b) => String(a[0].player).localeCompare(String(b[0].player)));
+  $('box-status').textContent = players.length + ' players with stats. Tap a player to expand.';
+  $('box-players').replaceChildren();
+  for (const entries of players) {
+   const first = entries[0];
+   const details = element('details');
+   details.append(element('summary', [first.player || 'Unknown player', first.team].filter(Boolean).join(' · ')));
+   for (const row of entries) {
+    const stats = element('ul');
+    for (const [name, value] of Object.entries(row.stats || {})) {
+     stats.append(element('li', name + ' ' + value));
+    }
+    details.append(element('strong', row.category || 'Stats'), stats);
+   }
+   $('box-players').append(details);
+  }
+ }
+ select.addEventListener('change', render);
+ render();
+}
+
 async function loadMatchup() {
   const id = new URLSearchParams(location.search).get('id');
   let game;
@@ -139,6 +228,14 @@ async function loadMatchup() {
   const start = new Date(game.start);
   $('game-status').textContent = (game.status || 'Scheduled') + ' · '
     + (game.start && Number.isFinite(start.getTime()) ? start.toLocaleString() : 'Kickoff time unavailable');
+  const final = game.state === 'post' || !game.state && /final|completed/i.test(game.status);
+  const live = game.state === 'in' || !game.state && /live|in progress|halftime/i.test(game.status);
+  if (final || live) {
+   showScore(game, final);
+   $('game-tools').hidden = true;
+   if (final) await showBoxScore(game);
+   return;
+  }
   $('markets').hidden = false;
   try {
     const snapshot = await readSnapshot('odds');
