@@ -83,12 +83,19 @@ const marketNames = {
 const label = key => marketNames[key] || String(key || 'Other').replaceAll('_', ' ');
 const normalize = name => String(name || '').trim().replace(/\s+/g, ' ').toLowerCase();
 
-function matchingMarkets(game, rows) {
+function freshTimestamp(value, now) {
+  const timestamp = Date.parse(value);
+  return timestamp <= now + 300000 && now - timestamp <= 86400000;
+}
+
+function matchingMarkets(game, rows, now = Date.now()) {
   const start = Date.parse(game.start);
   const away = normalize(game.away?.name);
   const home = normalize(game.home?.name);
-  if (!Number.isFinite(start) || !away || !home) return [];
-  return rows.filter(row => Number.isInteger(row?.odds) && Math.abs(row.odds) >= 100
+  if (!Number.isFinite(start) || start <= now || !away || !home) return [];
+  return rows.filter(row => Number.isSafeInteger(row?.odds) && Math.abs(row.odds) >= 100
+    && freshTimestamp(row.bookmaker_updated, now)
+    && Date.parse(row.commence_time) > now
     && normalize(row.event) === away + ' @ ' + home
     && Math.abs(Date.parse(row.commence_time) - start) <= 30 * 60 * 1000);
 }
@@ -110,6 +117,7 @@ function selection(row, showMarket = false) {
     event: row.event,
     kickoff: row.commence_time,
     market: row.market,
+    updated: row.bookmaker_updated,
     player: row.player || '',
     side: row.side || '',
     line: row.line ?? '',
@@ -283,7 +291,12 @@ async function loadMatchup() {
   try {
     const snapshot = await readSnapshot('odds');
     if (!['ok', 'no_markets'].includes(snapshot.status)) throw new Error('Odds unavailable');
-    const rows = matchingMarkets(game, Array.isArray(snapshot.markets) ? snapshot.markets : []);
+    const now = Date.now();
+    if (!freshTimestamp(snapshot.updated_at, now)) {
+      $('odds-status').textContent = 'The published FanDuel snapshot is out of date.';
+      return;
+    }
+    const rows = matchingMarkets(game, Array.isArray(snapshot.markets) ? snapshot.markets : [], now);
     const checked = Date.parse(snapshot.updated_at);
     $('odds-status').textContent = rows.length
       ? 'Snapshot prices may change.' + (Number.isFinite(checked) ? ' Feed checked ' + new Date(checked).toLocaleString() + '.' : '')
