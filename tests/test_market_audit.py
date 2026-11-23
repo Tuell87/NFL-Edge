@@ -11,9 +11,9 @@ def fixtures():
          "category":"rushing","stats":{"YDS":str(40+i)}} for i in range(6)]}
     odds={"status":"ok","updated_at":"2026-11-22T18:30:00Z","markets":[
         {"market":"player_rush_yds","side":"Over","line":44.5,"player":"Sample Runner",
-         "odds":-110,"commence_time":"2026-11-29T18:00:00Z","bookmaker_updated":"2026-11-22T18:00:00Z"}]}
+         "odds":-110,"event":"Opponent @ Sample Team","commence_time":"2026-11-29T18:00:00Z","bookmaker_updated":"2026-11-22T18:00:00Z"}]}
     matches=[{"player":"Sample Runner","market":"player_rush_yds","game_start":"2026-11-29T18:00:00+00:00",
-              "opponent":"Opponent","injury_status":"unverified"}]
+              "opponent":"Opponent","team":"Sample Team","player_id":"player-1","injury_status":"unverified"}]
     return history,odds,matches
 class AuditTests(unittest.TestCase):
     def test_market_line_joins_but_no_pick(self):
@@ -41,6 +41,18 @@ class AuditTests(unittest.TestCase):
     def test_same_name_distinct_ids_are_rejected(self):
         h,o,m=fixtures()
         h["rows"].append({**h["rows"][0],"player_id":"player-2","event_id":"different"})
+        self.assertEqual(mod.build(h,o,m,NOW)["rows"],[])
+    def test_wrong_game_is_rejected(self):
+        h,o,m=fixtures()
+        o["markets"][0]["event"]="Different @ Teams"
+        self.assertEqual(mod.build(h,o,m,NOW)["rows"],[])
+    def test_wrong_player_id_is_rejected(self):
+        h,o,m=fixtures()
+        m[0]["player_id"]="different-player"
+        self.assertEqual(mod.build(h,o,m,NOW)["rows"],[])
+    def test_duplicate_matchups_are_rejected(self):
+        h,o,m=fixtures()
+        m.append(dict(m[0]))
         self.assertEqual(mod.build(h,o,m,NOW)["rows"],[])
     def test_minimum_five_prior_games(self):
         h,o,m=fixtures()
