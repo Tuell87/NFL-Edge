@@ -39,6 +39,17 @@ class QualityTests(unittest.TestCase):
         r=mod.build({"status":"no_history","rows":[],"events_discovered":0,"games":0})
         self.assertIsNone(r["boxscore_extraction_rate"])
         self.assertEqual(r["status"],"insufficient_data")
+    def test_merged_archive_games_do_not_inflate_recent_extraction_rate(self):
+        rows=[{"event_id":str(i),"player_id":"p","category":"rushing"} for i in range(500)]
+        r=mod.build({"status":"ok","rows":rows,"events_discovered":210,
+                     "games":500,"recent_history_games":205,
+                     "archive_2024_games_added":150,
+                     "archive_2025_games_added":145})
+        self.assertEqual(r["games_with_boxscores"],205)
+        self.assertEqual(r["combined_games_with_boxscores"],500)
+        self.assertEqual(r["boxscore_extraction_rate"],round(205/210,4))
+        self.assertLessEqual(r["boxscore_extraction_rate"],1)
+
     def test_bad_input_is_safe(self):
         r=mod.build({"status":"ok","rows":"invalid","events_discovered":-1,"games":"none"})
         self.assertEqual(r["stat_rows"],0)
