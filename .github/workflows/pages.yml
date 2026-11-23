@@ -63,6 +63,8 @@ jobs:
         run: python3 scripts/build_baseline.py
       - name: Evaluate chronological yardage baseline
         run: python3 scripts/evaluate_baseline.py
+      - name: Pair historical players to upcoming NFL opponents
+        run: python3 scripts/build_matchups.py
       - name: Publish only approved static files
         run: |
           mkdir -p _site
@@ -77,6 +79,7 @@ jobs:
           cp compare.html _site/compare.html
           cp evaluation.html _site/evaluation.html
           cp probabilities.html _site/probabilities.html
+          cp matchups.html _site/matchups.html
           mkdir -p _site/data
           cp data/odds.json _site/data/odds.json
           cp data/games.json _site/data/games.json
@@ -85,6 +88,7 @@ jobs:
           cp data/baseline.json _site/data/baseline.json
           cp data/evaluation.json _site/data/evaluation.json
           cp data/probability_evaluation.json _site/data/probability_evaluation.json
+          cp data/matchups.json _site/data/matchups.json
           cp 404.html _site/404.html
           touch _site/.nojekyll
       - uses: actions/upload-pages-artifact@v4
