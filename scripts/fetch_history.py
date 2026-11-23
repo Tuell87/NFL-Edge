@@ -23,8 +23,10 @@ MAX_ROWS = 25000
 GAME_WEEKDAYS = (1, 2, 3, 4, 5, 6, 0)
 
 
-def recent_completed_events(today, fetch):
+def recent_completed_events(today, fetch, diagnostics=None):
     found = {}
+    days_attempted = 0
+    days_failed = 0
     # Anchor weeks on the latest *completed* Sunday, rather than the run day.
     # Sampling only the run's weekday previously missed most NFL games.
     sunday = today.date() - timedelta(days=(today.weekday() - 6) % 7)
@@ -39,9 +41,13 @@ def recent_completed_events(today, fetch):
                 offset -= 7  # Tuesday-Saturday preceding Sunday; Monday follows
             day = (week_sunday + timedelta(days=offset)).strftime("%Y%m%d")
             url = players.SCOREBOARD + "?" + urlencode({"dates": day, "limit": 100})
+            days_attempted += 1
             try:
                 board = fetch(url)
+                if not isinstance(board, dict) or not isinstance(board.get("events"), list):
+                    raise ValueError("invalid scoreboard response")
             except Exception:
+                days_failed += 1
                 continue
             for event in board.get("events", []):
                 if ((event.get("status") or {}).get("type") or {}).get("state") != "post":
@@ -55,6 +61,11 @@ def recent_completed_events(today, fetch):
                 event_id = str(event.get("id", ""))
                 if event_id:
                     found[event_id] = event
+    if diagnostics is not None:
+        diagnostics.update({"scoreboard_days_attempted": days_attempted,
+                            "scoreboard_days_failed": days_failed,
+                            "events_discovered_before_cap": len(found),
+                            "event_cap_reached": len(found) > MAX_GAMES})
     return sorted(found.values(), key=lambda event: event.get("date", ""), reverse=True)[:MAX_GAMES]
 
 
@@ -93,8 +104,8 @@ def main():
     OUTPUT.parent.mkdir(parents=True, exist_ok=True)
     now = datetime.now(timezone.utc)
     try:
-        events = recent_completed_events(now, players.fetch)
         diagnostics = {}
+        events = recent_completed_events(now, players.fetch, diagnostics)
         rows, games = assemble(events, players.fetch, diagnostics)
         result = {
             "status": "ok" if rows else "no_history",
