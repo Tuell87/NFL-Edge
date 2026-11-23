@@ -13,6 +13,10 @@ from pathlib import Path
 spec = importlib.util.spec_from_file_location("prob", "scripts/evaluate_probabilities.py")
 prob = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(prob)
+spec_observations = importlib.util.spec_from_file_location("observations", "scripts/observations.py")
+observations = importlib.util.module_from_spec(spec_observations)
+spec_observations.loader.exec_module(observations)
+
 OUTPUT = Path("data/holdout.json")
 MIN_PRIOR = 5
 HOLDOUT_FRACTION = 0.25
@@ -55,7 +59,7 @@ def valid_date(value):
 def evaluate(rows):
     groups = defaultdict(dict)
     dates = set()
-    for row in rows:
+    for row in observations.unique_rows(rows):
         parsed = prob.parse_yards(row)
         date = valid_date(row.get("game_date"))
         event = str(row.get("event_id") or "").strip()
