@@ -72,11 +72,16 @@ class OpponentEvaluationTests(unittest.TestCase):
         self.assertEqual(index.prior(mod.date_key("2026-09-02")), (1, 10.0, 1))
         self.assertEqual(index.prior(mod.date_key("2026-09-03")), (3, 60.0, 2))
 
-    def test_duplicate_stat_key_excluded(self):
+    def test_identical_duplicate_collapses_but_conflicting_duplicate_excluded(self):
         rows = dataset()
         rows.append(dict(rows[0]))
         prepared = mod.prepare(rows)
-        self.assertFalse(any(r[1] == "1" and r[2] == "a0" and r[3] == "rushing" for r in prepared))
+        self.assertEqual(sum(r[1] == "1" and r[2] == "a0" and r[3] == "rushing"
+                             for r in prepared), 1)
+        rows.append({**rows[0], "stats": {"YDS": "999"}})
+        prepared = mod.prepare(rows)
+        self.assertFalse(any(r[1] == "1" and r[2] == "a0" and r[3] == "rushing"
+                             for r in prepared))
 
 
 if __name__ == "__main__":
