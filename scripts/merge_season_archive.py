@@ -7,6 +7,11 @@ missing/failed archival data is explicitly reported, never synthesized.
 import json
 from collections import defaultdict
 from pathlib import Path
+import importlib.util
+
+spec = importlib.util.spec_from_file_location('archive_check', 'scripts/check_season_archive.py')
+archive_check = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(archive_check)
 
 HISTORY = Path("data/history.json")
 ARCHIVE = Path("data/archive_2025.json")
@@ -26,7 +31,8 @@ def group_games(rows):
 
 def merge(current, archive, max_rows=MAX_COMBINED_ROWS):
     current_groups = group_games(current.get("rows", []))
-    archive_groups = group_games(archive.get("rows", [])) if archive.get("status") == "ok" else {}
+    validation = archive_check.inspect(archive)
+    archive_groups = group_games(archive.get("rows", [])) if validation["safe_to_merge"] else {}
     groups = dict(current_groups)
     added = 0
     skipped_cap = 0
@@ -52,7 +58,8 @@ def merge(current, archive, max_rows=MAX_COMBINED_ROWS):
     output["games"] = len(groups)
     output["row_limit"] = max_rows
     output["status"] = "ok" if merged_rows else current.get("status", "no_history")
-    output["archive_2025_status"] = archive.get("status", "unavailable")
+    output["archive_2025_status"] = archive.get("status", "unavailable") if validation["safe_to_merge"] else "unusable_or_invalid"
+    output["archive_2025_validation"] = validation
     output["archive_2025_games_added"] = added
     output["archive_2025_games_skipped_duplicate"] = skipped_duplicate
     output["archive_2025_games_skipped_row_cap"] = skipped_cap
