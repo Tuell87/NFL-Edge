@@ -15,6 +15,10 @@ spec = importlib.util.spec_from_file_location("prob", "scripts/evaluate_probabil
 prob = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(prob)
 
+spec_observations = importlib.util.spec_from_file_location("observations", "scripts/observations.py")
+observations = importlib.util.module_from_spec(spec_observations)
+spec_observations.loader.exec_module(observations)
+
 OUTPUT = Path("data/market_audit.json")
 MARKETS = {"player_rush_yds": "rushing", "player_reception_yds": "receiving"}
 MAX_AGE = timedelta(hours=24)
@@ -46,7 +50,7 @@ def build(history, odds, matchups, now):
         return {"status": "stale_or_missing_history", "rows": [], "diagnostics": diagnostics}
     groups = defaultdict(dict)
     identity = defaultdict(set)
-    for row in history.get("rows", []):
+    for row in observations.unique_rows(history.get("rows", [])):
         parsed = prob.parse_yards(row)
         if not parsed or not row.get("event_id") or not row.get("game_date"):
             continue

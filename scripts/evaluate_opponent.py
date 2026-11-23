@@ -17,6 +17,10 @@ spec = importlib.util.spec_from_file_location("baseline_eval", "scripts/evaluate
 baseline = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(baseline)
 
+spec_observations = importlib.util.spec_from_file_location("observations", "scripts/observations.py")
+observations = importlib.util.module_from_spec(spec_observations)
+spec_observations.loader.exec_module(observations)
+
 OUTPUT = Path("data/opponent_evaluation.json")
 MIN_PLAYER_GAMES = 5
 MIN_OPPONENT_GAMES = 3
@@ -35,8 +39,9 @@ def date_key(value):
 
 def prepare(rows):
     """Only two-team events with stable identities can supply opponent context."""
+    canonical = observations.unique_rows(rows)
     by_event = defaultdict(set)
-    for row in rows:
+    for row in canonical:
         if isinstance(row, dict) and row.get("event_id") and row.get("team"):
             by_event[str(row["event_id"])].add(str(row["team"]).strip())
     opponents = {}
@@ -46,8 +51,7 @@ def prepare(rows):
             opponents[(event, a)] = b
             opponents[(event, b)] = a
     unique = {}
-    ambiguous = set()
-    for row in rows:
+    for row in canonical:
         if not isinstance(row, dict):
             continue
         parsed = baseline.parse_yards(row)
@@ -62,12 +66,8 @@ def prepare(rows):
             continue
         category, yards = parsed
         key = (event, player, category)
-        # Ambiguous duplicate observations are excluded, not overwritten.
-        if key in unique:
-            ambiguous.add(key)
-        else:
-            unique[key] = (date, event, player, category, team, opponent, yards)
-    return [value for key, value in unique.items() if key not in ambiguous]
+        unique[key] = (date, event, player, category, team, opponent, yards)
+    return list(unique.values())
 
 
 BOOTSTRAP_REPLICATES = 1000

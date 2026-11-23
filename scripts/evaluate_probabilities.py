@@ -14,6 +14,10 @@ module = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(module)
 parse_yards = module.parse_yards
 
+spec_observations = importlib.util.spec_from_file_location("observations", "scripts/observations.py")
+observations = importlib.util.module_from_spec(spec_observations)
+spec_observations.loader.exec_module(observations)
+
 HISTORY = Path("data/history.json")
 OUTPUT = Path("data/probability_evaluation.json")
 THRESHOLDS = (24.5, 49.5, 74.5, 99.5)
@@ -32,7 +36,7 @@ def estimate(previous, threshold):
 
 def evaluate(rows):
     grouped = defaultdict(dict)
-    for row in rows:
+    for row in observations.unique_rows(rows):
         parsed = parse_yards(row)
         player = str(row.get("player_id") or "").strip()
         event = str(row.get("event_id") or "").strip()

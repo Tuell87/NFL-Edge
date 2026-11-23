@@ -16,6 +16,7 @@ Scope: GitHub main tree (95 tracked files at audit start), workflow, collectors,
 | Medium | Historical search downloaded every raw multi-season stat row for an eight-game display | #56: compact searchable latest-eight-per-player/category JSON |
 | Medium | Zero eligible market comparisons had no explanation despite available odds and matchup rows | #57: per-reason rejection counts, visible on mobile market-audit page |
 | Medium | Large legacy terminal stores a browser-side odds API key and calls the provider directly | This audit: ensure it cannot enter the published Pages allowlist; document as unapproved legacy source |
+| Medium | Conflicting player-game stat rows were silently overwritten in some models, but excluded in opponent evaluation | #59: shared stable-ID deduplication across models and mobile search |
 
 ### Verified production observations
 
@@ -30,7 +31,7 @@ A previous run reported **108 FanDuel odds outcomes**, **67 upcoming player matc
 | P0 | `scripts/readiness_gate.py`, `scripts/fetch_rosters.py` | No verified official game-day active/inactive and injury clearance source. ESPN team roster membership is **not** sufficient. Select and validate a legal, reliable independent source before enabling predictions. |
 | P0 | `scripts/build_market_audit.py`, `scripts/fetch_odds.py` | Real odds feed is capped at two events and has yielded zero eligible research joins. Review new diagnostic counts; then fix only demonstrated player/team/market normalization problems. Do not loosen ambiguity checks. |
 | P1 | `scripts/fetch_rosters.py` | Parser assumes ESPN grouped/flat `athletes` and `displayName`; production reports 26 teams with rosters, but some missing teams may be due to schedule scope or endpoint differences. Inspect raw live responses and confirm ID coverage before changing parser. |
-| P1 | `scripts/build_baseline.py`, `scripts/evaluate_baseline.py`, `scripts/evaluate_probabilities.py` | Historical duplicate `(event, player, category)` rows are overwritten by dictionary assignment, while `evaluate_opponent.py` rejects ambiguous duplicates. Standardize handling of conflicting duplicates; add cross-model consistency tests. |
+| Resolved #59 | `scripts/observations.py` and research evaluators | Duplicate player/game/category handling standardized: identical rows collapse; conflicting records excluded; no name-only identity fallback. Regression tests added. |
 | P1 | `scripts/fetch_history.py`, archive collectors | ESPN public coverage is bounded and not a certified complete NFL season. Add schedule completeness checks against independent game lists; preserve failed scoreboard/summary counts. |
 | P1 | `scripts/build_research_status.py` | The three permanent readiness blockers should remain visible until independent availability and calibrated model evidence exist. Do not reduce blockers based solely on ESPN roster listing. |
 | P2 | `nfl-edge-terminal.html` | **User decision:** 134 KB legacy terminal, direct browser odds-key handling in localStorage, 56 `innerHTML` uses, not deployed. Delete, archive privately, or refactor before any public use. Current workflow must continue excluding it. |
@@ -53,5 +54,5 @@ A previous run reported **108 FanDuel odds outcomes**, **67 upcoming player matc
 1. Confirm latest main deploy completed and exact `release_sha` matched live Pages.
 2. Review #57 diagnostics on `market-audit.html`; investigate the first high-volume rejection reason.
 3. Verify actual 2024/2025 archive coverage and missing-game counts independently.
-4. Resolve historical duplicate handling consistently across all evaluators.
+4. Recheck cross-model sample counts after the shared duplicate-handling policy is deployed.
 5. Decide on official injury/inactive data source, legacy terminal removal, and public raw-history retention.

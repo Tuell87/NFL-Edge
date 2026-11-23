@@ -5,10 +5,15 @@ Full history remains available for server-side evaluations and optional exports.
 The browser only needs a few recent game rows per player/category, not every
 historical ESPN stat in all seasons.
 """
+import importlib.util
 import json
 from collections import defaultdict
 from datetime import datetime, timezone
 from pathlib import Path
+
+spec_observations = importlib.util.spec_from_file_location("observations", "scripts/observations.py")
+observations = importlib.util.module_from_spec(spec_observations)
+spec_observations.loader.exec_module(observations)
 
 OUTPUT = Path("data/history_search.json")
 RECENT_PER_PLAYER_CATEGORY = 8
@@ -17,7 +22,7 @@ RECENT_PER_PLAYER_CATEGORY = 8
 def build(history):
     rows = history.get("rows") if isinstance(history.get("rows"), list) else []
     grouped = defaultdict(dict)
-    for row in rows:
+    for row in observations.unique_rows(rows):
         if not isinstance(row, dict):
             continue
         player = str(row.get("player_id") or "").strip()
