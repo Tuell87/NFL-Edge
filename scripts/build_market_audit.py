@@ -69,16 +69,37 @@ def build(history, odds, matchups, now):
             key = (norm(m.get("player")), m.get("market"), parse_time(m.get("game_start")))
             matchup_keys[key].append(m)
     candidates = defaultdict(list)
+    diagnostics["market_types_seen"] = {}
+    diagnostics["selection_sides_seen"] = {}
+    for reason in ("unsupported_market", "not_over_side", "invalid_line",
+                   "missing_or_started_kickoff", "missing_or_stale_bookmaker",
+                   "invalid_odds"):
+        diagnostics["rejected_" + reason] = 0
     for item in odds.get("markets", []):
+        market_name = str(item.get("market") or "missing")
+        side_name = str(item.get("side") or "missing")
+        diagnostics["market_types_seen"][market_name] = diagnostics["market_types_seen"].get(market_name, 0) + 1
+        diagnostics["selection_sides_seen"][side_name] = diagnostics["selection_sides_seen"].get(side_name, 0) + 1
         category = MARKETS.get(item.get("market"))
         line = item.get("line")
         kickoff = parse_time(item.get("commence_time"))
         updated = parse_time(item.get("bookmaker_updated"))
-        if (not category or item.get("side") != "Over" or type(line) not in (int, float)
-            or not math.isfinite(line) or not kickoff or kickoff <= now
-            or not updated or not timedelta(0) <= now - updated <= MAX_AGE
-            or type(item.get("odds")) not in (int, float)
-            or not math.isfinite(item["odds"]) or item["odds"] == 0):
+        reason = None
+        if not category:
+            reason = "unsupported_market"
+        elif item.get("side") != "Over":
+            reason = "not_over_side"
+        elif type(line) not in (int, float) or not math.isfinite(line):
+            reason = "invalid_line"
+        elif not kickoff or kickoff <= now:
+            reason = "missing_or_started_kickoff"
+        elif not updated or not timedelta(0) <= now - updated <= MAX_AGE:
+            reason = "missing_or_stale_bookmaker"
+        elif (type(item.get("odds")) not in (int, float)
+              or not math.isfinite(item["odds"]) or item["odds"] == 0):
+            reason = "invalid_odds"
+        if reason:
+            diagnostics["rejected_" + reason] += 1
             continue
         diagnostics["supported_fresh_over_rows"] += 1
         key = (norm(item.get("player")), item["market"], kickoff)

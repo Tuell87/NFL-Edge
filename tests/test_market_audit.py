@@ -50,6 +50,23 @@ class AuditTests(unittest.TestCase):
         self.assertEqual(result["diagnostics"]["rejected_event_teams_mismatch"],1)
         self.assertEqual(result["diagnostics"]["eligible_comparisons"],0)
 
+    def test_market_filter_reports_unsupported_td_only_feed(self):
+        h,o,m=fixtures()
+        o["markets"]=[{**o["markets"][0], "market":"player_anytime_td",
+                       "side":"Yes","line":None}]
+        result=mod.build(h,o,m,NOW)
+        self.assertEqual(result["diagnostics"]["odds_rows_seen"],1)
+        self.assertEqual(result["diagnostics"]["market_types_seen"]["player_anytime_td"],1)
+        self.assertEqual(result["diagnostics"]["rejected_unsupported_market"],1)
+        self.assertEqual(result["diagnostics"]["supported_fresh_over_rows"],0)
+
+    def test_market_filter_reports_stale_bookmaker(self):
+        h,o,m=fixtures()
+        o["markets"][0]["bookmaker_updated"]="2026-11-20T18:00:00Z"
+        result=mod.build(h,o,m,NOW)
+        self.assertEqual(result["diagnostics"]["rejected_missing_or_stale_bookmaker"],1)
+        self.assertEqual(result["rows"],[])
+
     def test_duplicate_market_is_blocked(self):
         h,o,m=fixtures()
         o["markets"].append(dict(o["markets"][0]))
