@@ -59,6 +59,7 @@ def recent_completed_events(today, fetch):
 
 
 def assemble(events, fetch):
+    """Preserve complete event groups; do not publish a partial game at the row cap."""
     rows = []
     games = 0
     # Fetch newest completed games first so row limits do not silently
@@ -68,13 +69,15 @@ def assemble(events, fetch):
             summary = fetch(players.SUMMARY + "?" + urlencode({"event": event["id"]}))
             extracted = players.extract(event, summary)
             if extracted:
+                if len(rows) + len(extracted) > MAX_ROWS:
+                    break
                 rows.extend(extracted)
                 games += 1
         except Exception:
             continue
         if len(rows) >= MAX_ROWS:
             break
-    return rows[:MAX_ROWS], games
+    return rows, games
 
 
 def main():
@@ -89,8 +92,11 @@ def main():
             "source": "ESPN public NFL completed game box scores",
             "games": games,
             "events_discovered": len(events),
+            "row_limit": MAX_ROWS,
+            "row_limit_reached": len(rows) >= MAX_ROWS,
+            "events_without_usable_boxscores_or_not_processed": max(0, len(events) - games),
             "rows": rows,
-            "limitations": "Daily scoreboard sampling across up to eighteen recent NFL weeks; may miss incomplete ESPN summaries or games outside the lookback window. Not guaranteed full-season coverage or calibrated predictions."
+            "limitations": "Daily scoreboard sampling across up to eighteen recent NFL weeks; may miss incomplete ESPN summaries, games outside the lookback window, or games not processed due to row limits. Not guaranteed full-season coverage or calibrated predictions."
         }
     except Exception:
         result = {"status": "fetch_failed", "checked_at": now.isoformat(), "source": "ESPN public NFL completed game box scores", "games": 0, "rows": []}
