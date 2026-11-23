@@ -44,6 +44,14 @@ class ArchiveValidationTests(unittest.TestCase):
         data["games"] += 1
         self.assertFalse(mod.inspect(data)["safe_to_merge"])
 
+    def test_near_full_285_game_archive_is_cached_despite_failed_empty_dates(self):
+        data=archive(285)
+        data["scoreboard_days_failed"]=30
+        result=mod.inspect(data)
+        self.assertTrue(result["safe_to_merge"])
+        self.assertTrue(result["near_full_season_event_count"])
+        self.assertTrue(result["cacheable"])
+
     def test_failed_scoreboard_days_block_cache(self):
         data = archive()
         data["scoreboard_days_failed"] = 30

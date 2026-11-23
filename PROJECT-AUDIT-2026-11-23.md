@@ -17,6 +17,7 @@ Scope: GitHub main tree (95 tracked files at audit start), workflow, collectors,
 | Medium | Zero eligible market comparisons had no explanation despite available odds and matchup rows | #57: per-reason rejection counts, visible on mobile market-audit page |
 | Medium | Large legacy terminal stores a browser-side odds API key and calls the provider directly | This audit: ensure it cannot enter the published Pages allowlist; document as unapproved legacy source |
 | Medium | Conflicting player-game stat rows were silently overwritten in some models, but excluded in opponent evaluation | #59: shared stable-ID deduplication across models and mobile search |
+| Medium | The 285-game 2025 archive was being downloaded repeatedly because failed empty scoreboard dates blocked caching despite near-full game coverage | #61: permit verified near-full archives to cache while retaining strict sparse-archive rejection |
 
 ### Verified production observations
 
