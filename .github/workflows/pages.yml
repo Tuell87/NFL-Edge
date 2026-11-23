@@ -73,10 +73,14 @@ jobs:
         run: python3 scripts/fetch_rosters.py
       - name: Pair historical players to upcoming NFL opponents
         run: python3 scripts/build_matchups.py
+      - name: Summarize roster feed and matchup identity coverage
+        run: python3 scripts/build_roster_quality.py
       - name: Audit experimental probabilities against current FanDuel lines
         run: python3 scripts/build_market_audit.py
       - name: Verify generated JSON contracts before publishing
         run: python3 scripts/check_data_contracts.py
+      - name: Verify generated health and prediction safety
+        run: python3 scripts/check_generated_health.py
       - name: Publish only approved static files
         run: |
           mkdir -p _site
@@ -95,6 +99,7 @@ jobs:
           cp market-audit.html _site/market-audit.html
           cp holdout.html _site/holdout.html
           cp history-quality.html _site/history-quality.html
+          cp roster-quality.html _site/roster-quality.html
           mkdir -p _site/data
           cp data/odds.json _site/data/odds.json
           cp data/games.json _site/data/games.json
@@ -105,6 +110,7 @@ jobs:
           cp data/probability_evaluation.json _site/data/probability_evaluation.json
           cp data/matchups.json _site/data/matchups.json
           cp data/rosters.json _site/data/rosters.json
+          cp data/roster_quality.json _site/data/roster_quality.json
           cp data/market_audit.json _site/data/market_audit.json
           cp data/holdout.json _site/data/holdout.json
           cp data/history_quality.json _site/data/history_quality.json
