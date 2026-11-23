@@ -58,7 +58,7 @@ def merge(current, archive, max_rows=MAX_COMBINED_ROWS):
     output["games"] = len(groups)
     output["row_limit"] = max_rows
     output["status"] = "ok" if merged_rows else current.get("status", "no_history")
-    output["archive_2025_status"] = archive.get("status", "unavailable") if validation["safe_to_merge"] else "unusable_or_invalid"
+    output["archive_2025_status"] = (archive.get("status", "unavailable") if validation["safe_to_merge"] or archive.get("status") != "ok" else "unusable_or_invalid")
     output["archive_2025_validation"] = validation
     output["archive_2025_games_added"] = added
     output["archive_2025_games_skipped_duplicate"] = skipped_duplicate
