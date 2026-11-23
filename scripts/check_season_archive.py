@@ -21,9 +21,9 @@ def nfl_season(value):
         return None
 
 
-def inspect(archive):
+def inspect(archive, expected_season=2025):
     problems = []
-    if archive.get("status") != "ok" or archive.get("season") != 2025:
+    if archive.get("status") != "ok" or archive.get("season") != expected_season:
         problems.append("archive unavailable or wrong season label")
     rows = archive.get("rows")
     if not isinstance(rows, list):
@@ -38,7 +38,7 @@ def inspect(archive):
             invalid += 1
             continue
         season = nfl_season(row.get("game_date"))
-        if season != 2025:
+        if season != expected_season:
             wrong_season += 1
             continue
         events.add(str(row["event_id"]))
@@ -46,7 +46,7 @@ def inspect(archive):
     if invalid:
         problems.append(f"{invalid} invalid rows")
     if wrong_season:
-        problems.append(f"{wrong_season} rows outside 2025 NFL season")
+        problems.append(f"{wrong_season} rows outside {expected_season} NFL season")
     reported_games = archive.get("games")
     if type(reported_games) is not int or reported_games != len(events):
         problems.append("reported games disagree with unique event IDs")
@@ -67,7 +67,7 @@ def main():
     path = Path(sys.argv[1] if len(sys.argv) > 1 else "data/archive_2025.json")
     try:
         archive = json.loads(path.read_text())
-        result = inspect(archive)
+        result = inspect(archive, expected_season=int(sys.argv[2]) if len(sys.argv) > 2 and sys.argv[2].isdigit() else 2025)
     except (OSError, ValueError, TypeError):
         result = {"cacheable": False, "safe_to_merge": False, "event_count": 0,
                   "rows": 0, "issues": ["archive missing or malformed"]}
