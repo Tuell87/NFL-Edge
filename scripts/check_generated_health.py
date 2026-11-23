@@ -7,6 +7,7 @@ from pathlib import Path
 REQUIRED = {
     "rosters.json": ("teams",),
     "roster_quality.json": ("teams_requested", "teams_with_listings", "prediction_ready"),
+    "feed_integrity.json": ("warnings", "errors"),
     "matchups.json": ("matchups",),
     "history.json": ("rows",),
     "history_quality.json": ("categories",),
@@ -34,6 +35,11 @@ def validate(folder=Path("data")):
                 failures.append(f"{filename}: missing {field}")
         if data.get("status") != "ok":
             warnings.append(f"{filename}: status={data.get('status', 'missing')}")
+    integrity = documents.get("feed_integrity.json", {})
+    if integrity.get("status") == "invalid" or integrity.get("errors"):
+        failures.append("feed_integrity.json: cross-feed integrity errors")
+    if isinstance(integrity.get("warnings"), list):
+        warnings.extend("feed integrity: " + str(w) for w in integrity["warnings"])
     quality = documents.get("roster_quality.json", {})
     if quality.get("prediction_ready") is not False:
         failures.append("roster_quality.json: must not mark roster data prediction-ready")
