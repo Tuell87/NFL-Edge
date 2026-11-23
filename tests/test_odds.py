@@ -24,6 +24,24 @@ class OddsCollectorTests(unittest.TestCase):
         self.assertEqual(rows[0]["odds"], 135)
         self.assertEqual(rows[0]["event"], "Away @ Home")
 
+    def test_uses_market_timestamp_and_preserves_unknown_freshness(self):
+        events = [{"home_team": "Home", "away_team": "Away"}]
+        boards = [{"bookmakers": [{
+            "key": "fanduel",
+            "last_update": "2026-11-22T18:00:00Z",
+            "markets": [
+                {"key": "player_reception_yds", "last_update": "2026-11-22T19:00:00Z",
+                 "outcomes": [{"price": -110}, {"price": -105}]},
+                {"key": "player_rush_yds", "last_update": "2026-11-22T19:10:00Z",
+                 "outcomes": [{"price": -115}]},
+                {"key": "player_anytime_td", "outcomes": [{"price": 135}]},
+            ],
+        }]}]
+        self.assertEqual(
+            [row["bookmaker_updated"] for row in mod.normalize(events, boards)],
+            ["2026-11-22T19:00:00Z", "2026-11-22T19:00:00Z", "2026-11-22T19:10:00Z", None],
+        )
+
     def test_missing_key_publishes_not_configured_without_network(self):
         with tempfile.TemporaryDirectory() as tmp:
             with patch.object(mod, "OUTPUT", Path(tmp) / "odds.json"):

@@ -13,7 +13,7 @@ The project includes descriptive player baselines, chronological and season-sepa
 - **Historical ESPN box scores:** Rolling recent-game collection plus independently cached 2024 and 2025 NFL season archives. Archived seasons are bounded, may have missing summaries, and are not certified complete. Never interpret a count of collected games as full schedule coverage.
 - **Archives:** Reject wrong-season events and impossible counts. Cache only archives meeting coverage thresholds. Merge complete event groups without duplicates, with an 80,000-row cap. Recent sample cache is saved before archive merging, preventing stale mixed-source restoration.
 - **Roster:** ESPN team listing is a point-in-time identity cross-check, **not** proof of active, injury-free, or expected playing status.
-- **Odds:** The Odds API FanDuel sample covers at most two upcoming events. The optional server-side key may be missing, and prices can change. No sportsbook handoff is connected.
+- **Odds:** The Odds API FanDuel sample covers at most two upcoming events. The event-odds collector reads each market's published update time. Missing timestamps remain unknown and fail the research freshness gate. The optional server-side key may be missing, and prices can change. No sportsbook handoff is connected.
 - **Model:** Historical over probabilities and opponent-context factors are uncalibrated research. The readiness gate always sets `prediction_ready: false` and market audit `recommended: false`.
 - **Evaluation:** Rolling dates and season-separated training tests are retrospective, may have incomplete selection and correlated observations. Opponent ratios can reflect usage and opponent schedule, not necessarily defensive strength.
 
@@ -46,6 +46,10 @@ The project includes descriptive player baselines, chronological and season-sepa
 All listed PRs passed pull-request CI and were merged. Live deployment is verified separately through the Pages workflow.
 
 The FanDuel odds page displays 20 selections per page, with player and market filters, feed and bookmaker timestamps, and a game-started label for past kickoff times.
+
+### FanDuel snapshot diagnosis
+
+Release `5969347` published 118 outcomes. The audit filtered 56 anytime touchdown selections and 31 unders, then rejected all 31 supported overs at the freshness check. The published outcome timestamps were all missing. [The Odds API event-odds schema](https://the-odds-api.com/liveapi/guides/v4/index.html#get-event-odds) places `last_update` on each market. The collector now reads that field. A fresh timestamp only clears the freshness check. Player identity, teams and sufficient historical samples are still required.
 
 ## Project structure
 
