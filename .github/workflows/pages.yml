@@ -223,6 +223,7 @@ jobs:
           cp data/games.json _site/data/games.json
           cp data/players.json _site/data/players.json
           cp data/history.json _site/data/history.json
+          cp data/history_search.json _site/data/history_search.json
           cp data/baseline.json _site/data/baseline.json
           cp data/evaluation.json _site/data/evaluation.json
           cp data/probability_evaluation.json _site/data/probability_evaluation.json
