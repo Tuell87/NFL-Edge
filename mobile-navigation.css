@@ -13,7 +13,7 @@
     inset: auto 0 0;
     z-index: 10;
     display: grid;
-    grid-template-columns: repeat(5, minmax(0, 1fr));
+    grid-template-columns: repeat(6, minmax(0, 1fr));
     gap: 4px;
     margin: 0;
     padding: 4px max(6px, env(safe-area-inset-right, 0px))
@@ -23,6 +23,8 @@
     background: #0b1220;
     overflow: visible;
   }
+
+  .mobile-tabs .tab, .mobile-sections a { overflow-wrap: anywhere; }
 
   .mobile-sections a,
   .mobile-tabs .tab {

@@ -6,6 +6,7 @@
   <a href="./#odds">Odds &amp; Tools</a>
   <a href="./#research" aria-current="true">Research</a>
   <a href="./#project">Project</a>
+  <a href="./#rewards">Rewards</a>
 </nav>
 <main><a href="./home-next.html">← Game Day</a><h1>Model Evaluation Lab</h1><p class="muted">A paired test of three simple prior-game yardage estimators. This is an evaluation of a historical baseline, not a validated prediction system or betting recommendation.</p><div class="card"><strong>Evaluation status</strong><p id="status" role="status">Loading evaluation…</p><p id="checked" class="muted small"></p></div><div id="metrics"></div><div class="card"><strong>How the test works</strong><p class="muted">For each player, three algorithms estimate next-game rushing or receiving yards using only earlier observed games: all-prior mean, last-three mean, and previous-game value. Each is scored on exactly the same held-out observations. It compares that estimate with the actual result. Mean absolute error (MAE) measures the average number of yards the estimate missed by; lower is better.</p><p class="muted">This is a limited ESPN sample and cannot establish sportsbook edge, touchdown probabilities, or reliable performance across a full NFL season. The smallest MAE here does not establish a winning strategy: model selection on the same observations can overfit. More historical coverage, an untouched future test period, and stronger features are needed.</p></div></main><script>
 'use strict';
