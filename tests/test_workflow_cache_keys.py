@@ -10,7 +10,7 @@ def cache_key(step):
     match=re.search(pattern,WORKFLOW,re.S)
     if not match:
         raise AssertionError("Missing cache key for "+step)
-    return match.group(1)
+    return match.group(1).strip()
 
 
 class CacheKeyConsistencyTests(unittest.TestCase):
