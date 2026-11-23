@@ -120,6 +120,8 @@ jobs:
         run: python3 scripts/build_feed_integrity.py
       - name: Audit experimental probabilities against current FanDuel lines
         run: python3 scripts/build_market_audit.py
+      - name: Summarize current model research readiness for mobile homepage
+        run: python3 scripts/build_research_status.py
       - name: Verify generated JSON contracts before publishing
         run: python3 scripts/check_data_contracts.py
       - name: Verify generated health and prediction safety
@@ -166,6 +168,7 @@ jobs:
           cp data/opponent_holdout.json _site/data/opponent_holdout.json
           cp data/opponent_rolling.json _site/data/opponent_rolling.json
           cp data/opponent_seasons.json _site/data/opponent_seasons.json
+          cp data/research_status.json _site/data/research_status.json
           cp data/history_quality.json _site/data/history_quality.json
           cp 404.html _site/404.html
           touch _site/.nojekyll
