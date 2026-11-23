@@ -8,6 +8,7 @@ edge. Every comparison uses information strictly earlier than the target date.
 import importlib.util
 import json
 import random
+from bisect import bisect_left
 from collections import defaultdict
 from datetime import datetime, timezone
 from pathlib import Path
@@ -98,6 +99,25 @@ def event_cluster_interval(pairs, replicates=BOOTSTRAP_REPLICATES, seed=BOOTSTRA
     return round(low, 4), round(high, 4)
 
 
+class HistoricalIndex:
+    """Date-sorted prefix sums; every lookup excludes same-date observations."""
+
+    def __init__(self, records):
+        ordered = sorted(records, key=lambda r: (r[0], r[1], r[2]))
+        self.dates = [r[0] for r in ordered]
+        self.sums = [0.0]
+        self.distinct_events = [0]
+        seen = set()
+        for record in ordered:
+            self.sums.append(self.sums[-1] + record[6])
+            seen.add(record[1])
+            self.distinct_events.append(len(seen))
+
+    def prior(self, day):
+        count = bisect_left(self.dates, day)
+        return count, self.sums[count], self.distinct_events[count]
+
+
 def evaluate(rows, test_start=None, test_end=None, train_end=None):
     records = prepare(rows)
     by_player = defaultdict(list)
@@ -108,6 +128,9 @@ def evaluate(rows, test_start=None, test_end=None, train_end=None):
         by_player[(player, category)].append(record)
         by_category[category].append(record)
         by_opponent[(opponent, category)].append(record)
+    player_indexes = {key: HistoricalIndex(group) for key, group in by_player.items()}
+    opponent_indexes = {key: HistoricalIndex(group) for key, group in by_opponent.items()}
+    league_indexes = {key: HistoricalIndex(group) for key, group in by_category.items()}
     pairs = defaultdict(list)
     coverage = CounterLike()
     for (player, category), games in by_player.items():
@@ -115,27 +138,27 @@ def evaluate(rows, test_start=None, test_end=None, train_end=None):
             date, event, _, _, team, opponent, actual = target
             if (test_start is not None and date < test_start) or (test_end is not None and date >= test_end):
                 continue
-            prior = [r[6] for r in games if r[0] < date and (train_end is None or r[0] < train_end)]
-            if len(prior) < MIN_PLAYER_GAMES:
+            cutoff = min(date, train_end) if train_end is not None else date
+            player_count, player_total, _ = player_indexes[(player, category)].prior(cutoff)
+            if player_count < MIN_PLAYER_GAMES:
                 continue
             coverage.add(category, "player_baseline_eligible")
-            opponent_prior = [r for r in by_opponent[(opponent, category)] if r[0] < date and (train_end is None or r[0] < train_end)]
-            opponent_games = {r[1] for r in opponent_prior}
-            if len(opponent_games) < MIN_OPPONENT_GAMES or len(opponent_prior) < MIN_OPPONENT_ROWS:
+            opponent_count, opponent_total, opponent_events = opponent_indexes[(opponent, category)].prior(cutoff)
+            if opponent_events < MIN_OPPONENT_GAMES or opponent_count < MIN_OPPONENT_ROWS:
                 coverage.add(category, "insufficient_opponent_context")
                 continue
-            league_prior = [r[6] for r in by_category[category] if r[0] < date and (train_end is None or r[0] < train_end)]
-            if not league_prior:
+            league_count, league_total, _ = league_indexes[category].prior(cutoff)
+            if not league_count:
                 continue
-            league_mean = sum(league_prior) / len(league_prior)
+            league_mean = league_total / league_count
             if league_mean <= 0:
                 coverage.add(category, "invalid_league_reference")
                 continue
-            opponent_mean = sum(r[6] for r in opponent_prior) / len(opponent_prior)
+            opponent_mean = opponent_total / opponent_count
             raw_factor = opponent_mean / league_mean
-            weight = len(opponent_prior) / (len(opponent_prior) + SHRINKAGE_ROWS)
+            weight = opponent_count / (opponent_count + SHRINKAGE_ROWS)
             factor = max(MIN_FACTOR, min(MAX_FACTOR, 1 + weight * (raw_factor - 1)))
-            player_mean = sum(prior) / len(prior)
+            player_mean = player_total / player_count
             adjusted = player_mean * factor
             pairs[category].append((abs(actual - player_mean),
                                     abs(actual - adjusted), event, date.isoformat()))

@@ -62,6 +62,16 @@ class OpponentEvaluationTests(unittest.TestCase):
         self.assertEqual(first, (2.0, 2.0))
         self.assertIsNone(mod.event_cluster_interval(pairs[:4]))
 
+    def test_prefix_index_excludes_same_date_and_future(self):
+        records = [
+            (mod.date_key("2026-09-01"), "e1", "p1", "rushing", "A", "B", 10.0),
+            (mod.date_key("2026-09-02"), "e2", "p1", "rushing", "A", "B", 20.0),
+            (mod.date_key("2026-09-02"), "e2", "p2", "rushing", "A", "B", 30.0),
+            (mod.date_key("2026-09-03"), "e3", "p1", "rushing", "A", "B", 900.0)]
+        index = mod.HistoricalIndex(records)
+        self.assertEqual(index.prior(mod.date_key("2026-09-02")), (1, 10.0, 1))
+        self.assertEqual(index.prior(mod.date_key("2026-09-03")), (3, 60.0, 2))
+
     def test_duplicate_stat_key_excluded(self):
         rows = dataset()
         rows.append(dict(rows[0]))
