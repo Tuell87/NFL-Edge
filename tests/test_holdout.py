@@ -21,8 +21,8 @@ class HoldoutTests(unittest.TestCase):
         rows.extend([row("nine-a","2026-09-10",100),row("nine-b","2026-09-10",100)])
         result=mod.evaluate(rows)
         metric=next(m for m in result["metrics"] if m["line"]==24.5)
-        self.assertEqual(metric["observations"],3)
-        self.assertEqual(metric["mean_estimated_probability"],round(2/13,4))
+        self.assertEqual(metric["observations"],4)
+        self.assertEqual(metric["observed_over_rate"],0.5)
     def test_missing_dates_do_not_crash(self):
         self.assertEqual(mod.evaluate([row("a","not-a-date",20)])["status"],"insufficient_data")
 if __name__=="__main__":
