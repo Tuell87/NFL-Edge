@@ -98,7 +98,7 @@ def event_cluster_interval(pairs, replicates=BOOTSTRAP_REPLICATES, seed=BOOTSTRA
     return round(low, 4), round(high, 4)
 
 
-def evaluate(rows, test_start=None):
+def evaluate(rows, test_start=None, test_end=None):
     records = prepare(rows)
     by_player = defaultdict(list)
     by_category = defaultdict(list)
@@ -113,7 +113,7 @@ def evaluate(rows, test_start=None):
     for (player, category), games in by_player.items():
         for target in games:
             date, event, _, _, team, opponent, actual = target
-            if test_start is not None and date < test_start:
+            if (test_start is not None and date < test_start) or (test_end is not None and date >= test_end):
                 continue
             prior = [r[6] for r in games if r[0] < date]
             if len(prior) < MIN_PLAYER_GAMES:
@@ -171,6 +171,7 @@ def evaluate(rows, test_start=None):
         "status": "ok" if any(m["paired_observations"] for m in metrics) else "insufficient_data",
         "eligible_rows": len(records),
         "test_start": test_start.isoformat() if test_start else None,
+        "test_end_exclusive": test_end.isoformat() if test_end else None,
         "metrics": metrics,
         "method": "Paired chronological player mean vs shrunken opponent allowed-yards ratio; strictly earlier dates, >=5 prior player games, >=3 distinct prior opponent games and >=20 prior opponent player rows, 30-row shrinkage, factor clipped to 0.75–1.25.",
         "limitations": "Research-only descriptive comparison using the same historical sample. Opponent ratios reflect player mix, offensive usage, schedules, and incomplete box scores; not adjusted for injuries, opponent defensive strength, bookmaker lines, or game-day roster. Comparisons are correlated across players and games. Event-cluster bootstrap intervals are descriptive only and do not account for season selection, model choice, or future distribution shift; no verified betting edge."

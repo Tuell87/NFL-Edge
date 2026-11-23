@@ -11,6 +11,8 @@ spec.loader.exec_module(mod)
 def response(path, *, unsafe=False):
     if path.endswith(".html") or path == "/NFL-Edge/":
         return b"<!doctype html><html><head></head><body>ok</body></html>", "text/html"
+    if path.endswith("opponent_rolling.json"):
+        return json.dumps({"status": "insufficient_data", "windows": [], "prediction_ready": False}).encode(), "application/json"
     if path.endswith("opponent_holdout.json") or path.endswith("opponent_evaluation.json"):
         return json.dumps({"status": "insufficient_data", "metrics": []}).encode(), "application/json"
     if path.endswith("feed_integrity.json"):
