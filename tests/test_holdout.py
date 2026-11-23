@@ -32,6 +32,20 @@ class HoldoutTests(unittest.TestCase):
         m2=next(m for m in b if m["line"]==24.5)
         self.assertEqual(m1["training_rate_reference"],m2["training_rate_reference"])
         self.assertNotEqual(m1["training_rate_brier"],m2["training_rate_brier"])
+    def test_small_holdout_is_not_sufficient_evidence(self):
+        rows=[row(i,f"2026-09-{i+1:02d}",20) for i in range(12)]
+        result=mod.evaluate(rows)
+        self.assertEqual(result["evidence_status"],"insufficient_holdout_evidence")
+        self.assertTrue(all(m["evidence_status"]=="insufficient_holdout_evidence" for m in result["metrics"]))
+        self.assertTrue(all(not m["prediction_ready"] for m in result["metrics"]))
+    def test_more_dates_and_observations_only_preliminary(self):
+        rows=[]
+        for i in range(20):
+            for p in range(10):
+                rows.append(row(f"{i}-{p}",f"2026-09-{i+1:02d}",20+i,player=str(p)))
+        result=mod.evaluate(rows)
+        self.assertEqual(result["evidence_status"],"preliminary")
+        self.assertTrue(all(not m["prediction_ready"] for m in result["metrics"]))
     def test_missing_dates_do_not_crash(self):
         self.assertEqual(mod.evaluate([row("a","not-a-date",20)])["status"],"insufficient_data")
 if __name__=="__main__":
