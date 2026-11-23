@@ -27,6 +27,8 @@ table{width:100%;border-collapse:collapse;font-size:.875rem}
 th,td{text-align:left;padding:8px 5px;border-bottom:1px solid #324760;overflow-wrap:anywhere}
 th:last-child,td:last-child{text-align:right}
 .price{color:#54e6b5;font-weight:700}
+.search-picker{min-width:0}.search-picker [hidden]{display:none}.search-picker select{width:100%;min-height:44px;font-size:16px}
+@media(max-width:520px){.toolbar .search-picker{grid-column:1/-1}}
 </style>
 <link rel="stylesheet" href="./mobile-navigation.css">
 </head>
@@ -46,7 +48,14 @@ th:last-child,td:last-child{text-align:right}
 <p id="status" role="status">Loading published odds…</p>
 <p id="updated" class="muted"></p>
 <div class="filters">
-<label>Player or matchup<input id="search" type="search"></label>
+<div class="search-picker">
+<label for="search-choice">Player or matchup</label>
+<select id="search-choice" data-default-label="All players and matchups">
+  <option value="">All players and matchups</option>
+  <option value="custom">Custom search…</option>
+</select>
+<input id="search" type="search" aria-label="Custom search" placeholder="Player or matchup…" hidden>
+</div>
 <label>Market<select id="market"><option value="">All markets</option></select></label>
 <button id="refresh" type="button">Refresh snapshot</button>
 </div>
@@ -60,6 +69,7 @@ th:last-child,td:last-child{text-align:right}
 <button id="next" type="button">Next</button>
 </div>
 </main>
+<script src="./search-choices.js"></script>
 <script>
 'use strict';
 const $ = id => document.getElementById(id);
@@ -158,6 +168,7 @@ async function load() {
     $('updated').textContent = '';
     status.textContent = 'The published snapshot could not be loaded. Try refreshing.';
   } finally {
+    if ($('search-choice')) updateSearchChoices(rows, ["player","event"]);
     updateMarkets();
     render();
     refresh.disabled = false;
@@ -174,6 +185,7 @@ $('market').addEventListener('change', resetPage);
 $('previous').addEventListener('click', () => { page--; render(); });
 $('next').addEventListener('click', () => { page++; render(); });
 $('refresh').addEventListener('click', load);
+if ($('search-choice')) updateSearchChoices([], ["player","event"]);
 load();
 </script>
 </body>
