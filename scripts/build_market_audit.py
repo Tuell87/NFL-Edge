@@ -30,12 +30,20 @@ def norm(value):
     return " ".join(str(value or "").casefold().split())
 
 def build(history, odds, matchups, now):
+    diagnostics = {"odds_rows_seen": len(odds.get("markets", [])) if isinstance(odds.get("markets"), list) else 0,
+                   "supported_fresh_over_rows": 0, "candidate_market_keys": 0,
+                   "rejected_missing_or_ambiguous_matchup": 0,
+                   "rejected_ambiguous_historical_identity": 0,
+                   "rejected_insufficient_historical_games": 0,
+                   "rejected_player_id_mismatch": 0,
+                   "rejected_event_teams_mismatch": 0,
+                   "eligible_comparisons": 0}
     checked = parse_time(odds.get("updated_at"))
     if odds.get("status") != "ok" or not checked or not timedelta(0) <= now - checked <= MAX_AGE:
-        return {"status": "stale_or_missing_odds", "rows": []}
+        return {"status": "stale_or_missing_odds", "rows": [], "diagnostics": diagnostics}
     history_checked = parse_time(history.get("checked_at"))
     if history.get("status") != "ok" or not history_checked or not timedelta(0) <= now - history_checked <= timedelta(days=3):
-        return {"status": "stale_or_missing_history", "rows": []}
+        return {"status": "stale_or_missing_history", "rows": [], "diagnostics": diagnostics}
     groups = defaultdict(dict)
     identity = defaultdict(set)
     for row in history.get("rows", []):
@@ -68,27 +76,34 @@ def build(history, odds, matchups, now):
             or type(item.get("odds")) not in (int, float)
             or not math.isfinite(item["odds"]) or item["odds"] == 0):
             continue
+        diagnostics["supported_fresh_over_rows"] += 1
         key = (norm(item.get("player")), item["market"], kickoff)
         candidates[key].append(item)
+    diagnostics["candidate_market_keys"] = len(candidates)
     output = []
     for key, selections in candidates.items():
         if len(selections) != 1 or len(matchup_keys.get(key, [])) != 1:
+            diagnostics["rejected_missing_or_ambiguous_matchup"] += 1
             continue
         selection = selections[0]
         category = MARKETS[selection["market"]]
         ids = identity.get((key[0], category), set())
         if len(ids) != 1:
+            diagnostics["rejected_ambiguous_historical_identity"] += 1
             continue  # Reject collisions between distinct athletes with the same name.
         previous = [yards for date, yards in groups.get((key[0], category, next(iter(ids))), {}).values()
                     if parse_time(date) and parse_time(date) < parse_time(selection["commence_time"])]
         estimate = prob.estimate(previous, selection["line"])
         if estimate is None:
+            diagnostics["rejected_insufficient_historical_games"] += 1
             continue
         matchup = matchup_keys[key][0]
         if str(matchup["player_id"]) not in ids:
+            diagnostics["rejected_player_id_mismatch"] += 1
             continue
         event_teams = [norm(t) for t in str(selection.get("event") or "").split(" @ ")]
         if len(event_teams) != 2 or set(event_teams) != {norm(matchup["team"]), norm(matchup["opponent"])}:
+            diagnostics["rejected_event_teams_mismatch"] += 1
             continue
         output.append({"player": selection["player"], "market": selection["market"],
                        "line": selection["line"], "odds": selection["odds"],
@@ -103,7 +118,9 @@ def build(history, odds, matchups, now):
                            "injury_availability_not_verified", "active_roster_not_verified"]),
                        "prediction_ready": False, "recommended": False})
     output.sort(key=lambda r: (r["game_start"], r["player"], r["market"]))
-    return {"status": "ok" if output else "no_eligible_market_matches", "rows": output}
+    diagnostics["eligible_comparisons"] = len(output)
+    return {"status": "ok" if output else "no_eligible_market_matches", "rows": output,
+            "diagnostics": diagnostics}
 
 def main():
     OUTPUT.parent.mkdir(parents=True, exist_ok=True)
@@ -114,7 +131,7 @@ def main():
         matchups = json.loads(Path("data/matchups.json").read_text())
         result = build(history, odds, matchups.get("matchups", []), now)
     except (OSError, ValueError, TypeError):
-        result = {"status": "unavailable", "rows": []}
+        result = {"status": "unavailable", "rows": [], "diagnostics": {}}
     result["checked_at"] = now.isoformat()
     result["limitations"] = "Uncalibrated historical frequency estimate, not a pick or expected value. Injury/active status and opponent adjustments unverified. No parlays."
     OUTPUT.write_text(json.dumps(result, indent=2))
