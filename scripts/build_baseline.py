@@ -2,7 +2,12 @@
 """Historical prop hit rates for exploration, not predictive probabilities."""
 import json
 import math
+from datetime import datetime, timezone
 from pathlib import Path
+import importlib.util
+spec = importlib.util.spec_from_file_location("sample_quality", "scripts/sample_quality.py")
+sample_quality = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(sample_quality)
 
 HISTORY = Path("data/history.json")
 OUTPUT = Path("data/baseline.json")
@@ -68,7 +73,7 @@ def main():
             "status": "ok" if rows else "insufficient_data",
             "source": "ESPN historical box-score snapshot",
             "history_checked_at": data.get("checked_at"),
-            "minimum_games": MIN_GAMES, "players": rows,
+            "minimum_games": MIN_GAMES, "players": sample_quality.annotate(rows, datetime.now(timezone.utc)),
             "disclaimer": "Descriptive recent-game results only. Not a forecast, calibrated probability, or recommendation."
         }
     except Exception:

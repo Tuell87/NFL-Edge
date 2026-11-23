@@ -32,6 +32,8 @@ def build(games, players, now):
             matches.append({"player": player_name, "player_id": player_id, "team": team,
                             "market": player.get("market"),
                             "games_sampled": player.get("games"),
+                            "sample_quality": player.get("sample_quality", "unavailable"),
+                            "sample_quality_reasons": player.get("sample_quality_reasons", []),
                             "opponent": game["away"] if team == game["home"] else game["home"],
                             "game_start": game["start"],
                             "availability": "unverified",
