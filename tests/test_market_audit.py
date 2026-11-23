@@ -35,6 +35,21 @@ class AuditTests(unittest.TestCase):
         h,o,m=fixtures()
         o["updated_at"]="2026-11-20T18:30:00Z"
         self.assertEqual(mod.build(h,o,m,NOW)["rows"],[])
+    def test_rejection_diagnostics_explain_missing_matchups(self):
+        h,o,m=fixtures()
+        result=mod.build(h,o,[],NOW)
+        self.assertEqual(result["rows"],[])
+        self.assertEqual(result["diagnostics"]["odds_rows_seen"],1)
+        self.assertEqual(result["diagnostics"]["supported_fresh_over_rows"],1)
+        self.assertEqual(result["diagnostics"]["rejected_missing_or_ambiguous_matchup"],1)
+
+    def test_event_mismatch_is_diagnosed_without_recommendation(self):
+        h,o,m=fixtures()
+        o["markets"][0]["event"]="Different @ Teams"
+        result=mod.build(h,o,m,NOW)
+        self.assertEqual(result["diagnostics"]["rejected_event_teams_mismatch"],1)
+        self.assertEqual(result["diagnostics"]["eligible_comparisons"],0)
+
     def test_duplicate_market_is_blocked(self):
         h,o,m=fixtures()
         o["markets"].append(dict(o["markets"][0]))
