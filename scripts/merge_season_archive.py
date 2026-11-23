@@ -55,6 +55,8 @@ def merge(current, archive, max_rows=MAX_COMBINED_ROWS, season=2025):
                    max(str(r.get("game_date") or "") for r in records),
                    reverse=True) for r in records]
     output = dict(current)
+    output.setdefault("recent_history_games", current.get("games", 0))
+    output.setdefault("recent_history_rows", len(current.get("rows", [])))
     output["rows"] = merged_rows
     output["games"] = len(groups)
     output["row_limit"] = max_rows
