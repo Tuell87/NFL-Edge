@@ -16,9 +16,11 @@ def build(history):
     if not isinstance(rows, list):
         rows = []
     discovered = history.get("events_discovered")
-    extracted = history.get("games")
+    extracted = history.get("recent_history_games", history.get("games"))
+    combined = history.get("games")
     discovered = discovered if type(discovered) is int and discovered >= 0 else None
     extracted = extracted if type(extracted) is int and extracted >= 0 else None
+    combined = combined if type(combined) is int and combined >= 0 else None
     ids = {str(r.get("event_id")) for r in rows if isinstance(r, dict) and r.get("event_id")}
     unique_players = {str(r.get("player_id")) for r in rows if isinstance(r, dict) and r.get("player_id")}
     categories = Counter(str(r.get("category") or "unknown") for r in rows if isinstance(r, dict))
@@ -42,6 +44,9 @@ def build(history):
         "history_checked_at": history.get("checked_at"),
         "events_discovered": discovered,
         "games_with_boxscores": extracted,
+        "combined_games_with_boxscores": combined,
+        "archive_2024_games_added": history.get("archive_2024_games_added", 0),
+        "archive_2025_games_added": history.get("archive_2025_games_added", 0),
         "scoreboard_days_attempted": history.get("scoreboard_days_attempted"),
         "scoreboard_days_failed": history.get("scoreboard_days_failed"),
         "events_discovered_before_cap": history.get("events_discovered_before_cap"),
@@ -64,7 +69,7 @@ def build(history):
         "earliest_game_date": dates[0] if dates else None,
         "latest_game_date": dates[-1] if dates else None,
         "categories": [{"name": k, "rows": v} for k,v in sorted(categories.items())],
-        "limitations": "The rate measures usable summaries among ESPN-discovered events, not total NFL schedule coverage. Discovered-minus-extracted includes skipped, failed, and unattempted summaries; it is not strictly a count of missing box scores. Failed scoreboard dates, an incomplete scoreboard, missing player rows, skipped fetches, row caps, or incomplete game summaries can distort these counts. Games with fewer than ten distinct player IDs are flagged for review, not proven incomplete; this heuristic depends on the extracted categories. These are diagnostics, not predictive accuracy."
+        "limitations": "The rate measures recent-sample usable summaries among recent ESPN-discovered events, not merged archive games or total NFL schedule coverage. Discovered-minus-extracted includes skipped, failed, and unattempted summaries; it is not strictly a count of missing box scores. Failed scoreboard dates, an incomplete scoreboard, missing player rows, skipped fetches, row caps, or incomplete game summaries can distort these counts. Games with fewer than ten distinct player IDs are flagged for review, not proven incomplete; this heuristic depends on the extracted categories. These are diagnostics, not predictive accuracy."
     }
 
 def main():

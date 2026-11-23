@@ -16,7 +16,7 @@ spec.loader.exec_module(archive_check)
 HISTORY = Path("data/history.json")
 ARCHIVE = Path("data/archive_2025.json")
 ARCHIVE_2024 = Path("data/archive_2024.json")
-MAX_COMBINED_ROWS = 50000
+MAX_COMBINED_ROWS = 80000
 
 
 def group_games(rows):
@@ -55,6 +55,8 @@ def merge(current, archive, max_rows=MAX_COMBINED_ROWS, season=2025):
                    max(str(r.get("game_date") or "") for r in records),
                    reverse=True) for r in records]
     output = dict(current)
+    output.setdefault("recent_history_games", current.get("games", 0))
+    output.setdefault("recent_history_rows", len(current.get("rows", [])))
     output["rows"] = merged_rows
     output["games"] = len(groups)
     output["row_limit"] = max_rows
