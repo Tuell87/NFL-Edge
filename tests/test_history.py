@@ -8,7 +8,7 @@ spec.loader.exec_module(mod)
 class HistoryTests(unittest.TestCase):
     def test_prior_completed_events_deduplicated(self):
         def fetch(url):
-            return {"events":[{"id":"123","date":"2026-11-01","status":{"type":{"state":"post"}}},{"id":"999","status":{"type":{"state":"in"}}}]}
+            return {"events":[{"id":"123","date":"2026-11-01T20:00:00Z","status":{"type":{"state":"post"}}},{"id":"999","status":{"type":{"state":"in"}}}]}
         events=mod.recent_completed_events(datetime(2026,11,22,tzinfo=timezone.utc),fetch)
         self.assertEqual(len(events),1)
         self.assertEqual(events[0]["id"],"123")
@@ -21,18 +21,26 @@ class HistoryTests(unittest.TestCase):
             requested.append(day)
             return {"events": []}
         mod.recent_completed_events(datetime(2026, 11, 22, tzinfo=timezone.utc), fetch)
-        self.assertEqual(len(requested), 54)
+        self.assertEqual(len(requested), 126)
         self.assertIn("20261112", requested)  # Thursday before prior Sunday
+        self.assertIn("20261114", requested)  # Saturday before prior Sunday
+        self.assertIn("20261113", requested)  # Friday before prior Sunday
         self.assertIn("20261115", requested)  # Previous Sunday
         self.assertIn("20261116", requested)  # Monday after Sunday
         self.assertNotIn("20261122", requested)  # Never sample incomplete Sunday
 
     def test_multiple_game_days_and_dedup(self):
         def fetch(url):
-            return {"events": [{"id": "1", "date": "2026-11-15", "status": {"type": {"state": "post"}}},
-                               {"id": "2", "date": "2026-11-16", "status": {"type": {"state": "post"}}}]}
+            return {"events": [{"id": "1", "date": "2026-11-15T20:00:00Z", "status": {"type": {"state": "post"}}},
+                               {"id": "2", "date": "2026-11-16T20:00:00Z", "status": {"type": {"state": "post"}}}]}
         events = mod.recent_completed_events(datetime(2026, 11, 22, tzinfo=timezone.utc), fetch)
         self.assertEqual({e["id"] for e in events}, {"1", "2"})
+
+    def test_future_dated_post_events_are_excluded(self):
+        def fetch(url):
+            return {"events":[{"id":"future","date":"2026-12-01T20:00:00Z","status":{"type":{"state":"post"}}}]}
+        events=mod.recent_completed_events(datetime(2026,11,22,tzinfo=timezone.utc),fetch)
+        self.assertEqual(events,[])
 
     def test_summary_failure_skipped(self):
         rows,games=mod.assemble([{"id":"123"}],lambda url: (_ for _ in ()).throw(RuntimeError("unavailable")))
