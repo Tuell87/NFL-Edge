@@ -35,7 +35,7 @@ def recent_completed_events(today, fetch):
         week_sunday = sunday - timedelta(weeks=weeks_ago)
         for weekday in GAME_WEEKDAYS:
             offset = (weekday - 6) % 7
-            if weekday != 6 and offset > 0:
+            if weekday in (1, 2, 3, 4, 5):
                 offset -= 7  # Tuesday-Saturday preceding Sunday; Monday follows
             day = (week_sunday + timedelta(days=offset)).strftime("%Y%m%d")
             url = players.SCOREBOARD + "?" + urlencode({"dates": day, "limit": 100})
