@@ -13,11 +13,12 @@ from urllib.parse import urljoin
 from urllib.request import Request, urlopen
 
 DEFAULT_BASE = "https://tuell87.github.io/NFL-Edge/"
-PAGES = ("", "opponent-holdout.html", "opponent-evaluation.html", "opponent-rolling.html",
+PAGES = ("", "opponent-holdout.html", "opponent-evaluation.html", "opponent-rolling.html", "opponent-seasons.html",
          "feed-integrity.html", "roster-quality.html")
 DATA = {
     "data/opponent_holdout.json": ("metrics", "status"),
     "data/opponent_rolling.json": ("windows", "prediction_ready", "status"),
+    "data/opponent_seasons.json": ("tests", "prediction_ready", "status"),
     "data/opponent_evaluation.json": ("metrics", "status"),
     "data/feed_integrity.json": ("warnings", "errors", "status"),
     "data/roster_quality.json": ("teams_requested", "prediction_ready"),

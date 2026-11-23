@@ -98,7 +98,7 @@ def event_cluster_interval(pairs, replicates=BOOTSTRAP_REPLICATES, seed=BOOTSTRA
     return round(low, 4), round(high, 4)
 
 
-def evaluate(rows, test_start=None, test_end=None):
+def evaluate(rows, test_start=None, test_end=None, train_end=None):
     records = prepare(rows)
     by_player = defaultdict(list)
     by_category = defaultdict(list)
@@ -115,16 +115,16 @@ def evaluate(rows, test_start=None, test_end=None):
             date, event, _, _, team, opponent, actual = target
             if (test_start is not None and date < test_start) or (test_end is not None and date >= test_end):
                 continue
-            prior = [r[6] for r in games if r[0] < date]
+            prior = [r[6] for r in games if r[0] < date and (train_end is None or r[0] < train_end)]
             if len(prior) < MIN_PLAYER_GAMES:
                 continue
             coverage.add(category, "player_baseline_eligible")
-            opponent_prior = [r for r in by_opponent[(opponent, category)] if r[0] < date]
+            opponent_prior = [r for r in by_opponent[(opponent, category)] if r[0] < date and (train_end is None or r[0] < train_end)]
             opponent_games = {r[1] for r in opponent_prior}
             if len(opponent_games) < MIN_OPPONENT_GAMES or len(opponent_prior) < MIN_OPPONENT_ROWS:
                 coverage.add(category, "insufficient_opponent_context")
                 continue
-            league_prior = [r[6] for r in by_category[category] if r[0] < date]
+            league_prior = [r[6] for r in by_category[category] if r[0] < date and (train_end is None or r[0] < train_end)]
             if not league_prior:
                 continue
             league_mean = sum(league_prior) / len(league_prior)
@@ -172,6 +172,7 @@ def evaluate(rows, test_start=None, test_end=None):
         "eligible_rows": len(records),
         "test_start": test_start.isoformat() if test_start else None,
         "test_end_exclusive": test_end.isoformat() if test_end else None,
+        "training_end_exclusive": train_end.isoformat() if train_end else None,
         "metrics": metrics,
         "method": "Paired chronological player mean vs shrunken opponent allowed-yards ratio; strictly earlier dates, >=5 prior player games, >=3 distinct prior opponent games and >=20 prior opponent player rows, 30-row shrinkage, factor clipped to 0.75–1.25.",
         "limitations": "Research-only descriptive comparison using the same historical sample. Opponent ratios reflect player mix, offensive usage, schedules, and incomplete box scores; not adjusted for injuries, opponent defensive strength, bookmaker lines, or game-day roster. Comparisons are correlated across players and games. Event-cluster bootstrap intervals are descriptive only and do not account for season selection, model choice, or future distribution shift; no verified betting edge."
