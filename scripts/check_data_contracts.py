@@ -23,6 +23,7 @@ REQUIRED = {
     "opponent_holdout.json": ("metrics",),
     "opponent_rolling.json": ("windows", "prediction_ready"),
     "opponent_seasons.json": ("tests", "prediction_ready"),
+    "research_status.json": ("readiness_blockers", "prediction_ready"),
     "history_quality.json": ("categories",),
 }
 LIST_FIELDS = {"markets", "games", "players", "rows", "matchups", "metrics", "categories", "teams", "warnings", "errors"}
