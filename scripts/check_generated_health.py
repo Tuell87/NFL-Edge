@@ -44,6 +44,13 @@ def validate(folder=Path("data")):
         failures.append("feed_integrity.json: cross-feed integrity errors")
     if isinstance(integrity.get("warnings"), list):
         warnings.extend("feed integrity: " + str(w) for w in integrity["warnings"])
+    for filename in ("opponent_rolling.json", "opponent_seasons.json"):
+        research = documents.get(filename, {})
+        if research.get("prediction_ready") is not False:
+            failures.append(f"{filename}: research must remain prediction_ready=false")
+        for test in research.get("tests", []) if filename == "opponent_seasons.json" else []:
+            if not isinstance(test, dict) or test.get("prediction_ready") is not False:
+                failures.append(f"{filename}: season test must remain research-only")
     quality = documents.get("roster_quality.json", {})
     if quality.get("prediction_ready") is not False:
         failures.append("roster_quality.json: must not mark roster data prediction-ready")
