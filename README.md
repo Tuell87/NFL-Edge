@@ -36,3 +36,17 @@ No API keys are needed for offline tests. Generated `data/*.json` files are prod
 - Model outputs are **research only** and do not produce recommended picks, parlays or verified player availability.
 
 See the tracker for limitations, roadmap and user-review decisions.
+
+### Check historical schedule coverage
+
+Compare the deployed [history snapshot](https://tuell87.github.io/NFL-Edge/data/history.json)
+with the [nflverse schedule CSV](https://github.com/nflverse/nfldata/raw/refs/heads/master/data/games.csv):
+
+```sh
+python scripts/audit_archive_schedule.py history.json games.csv 2024 2025
+```
+
+The audit counts completed regular-season and playoff games using event IDs. It
+reports unmatched games and missing schedule IDs separately and returns a nonzero
+exit code when coverage cannot be confirmed. It checks game presence only. Each
+game's player-stat completeness still depends on the underlying box score.
