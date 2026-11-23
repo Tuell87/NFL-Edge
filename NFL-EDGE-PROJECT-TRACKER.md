@@ -1,57 +1,63 @@
-# NFL-Edge 2.0 — Living Project Tracker
-Updated: 2026-11-22. iPhone-first development. Repository: https://github.com/Tuell87/NFL-Edge
+# NFL-Edge 2.0 — Living Engineering Tracker
 
-**Current status:** Mobile static DEMO, not a live or validated NFL prediction engine. PR #1 merged: Pages workflow, static release checks, UI smoke tests, SECURITY.md. Production Pages deployment is **not yet verified**. No live odds, licensed data feed, calibrated model, or verified FanDuel betslip deep link.
+Updated: 2026-11-23. Repository: https://github.com/Tuell87/NFL-Edge. Mobile site: https://tuell87.github.io/NFL-Edge/.
 
-## North star
-Build calibrated NFL player-prop probabilities, separate **Most Likely** from **Best Value** using timestamped odds and uncertainty, measure every prediction prospectively, and deliver a secure mobile-first interface. No guaranteed outcomes.
+## Current product status
 
-## Roadmap
-- [ ] **P0 — Deployment:** Confirm GitHub Pages source GitHub Actions; verify both main-branch `verify` and `deploy` jobs; iPhone Safari acceptance test; version and data-freshness labels.
-- [ ] **P1 — Data:** License/verify NFL play-by-play, player status/injury, and FanDuel odds coverage; implement secure server-side ingestion and historical odds snapshots; enforce timestamps, normalized IDs, no stale lines, no API keys in client.
-- [ ] **P2 — Baselines:** Compare no-vig market baseline, opportunity-adjusted TD count models, and yardage/reception models. Use time-based rolling splits; prevent look-ahead leakage.
-- [ ] **P3 — Calibration:** Evaluate Brier score, log loss, reliability by probability/market bucket, sample size, and uncertainty; improve over market-only baseline before promotion.
-- [ ] **P4 — Value ranking:** Break-even probability, no-vig assumptions, uncertainty-adjusted EV, line freshness, and conservative pick selection. Show `Most Likely` separately from `Best Value`.
-- [ ] **P5 — Ladders/parlays:** Model 1+/2+/3+ TD from one coherent count distribution; test overdispersion; estimate same-game correlation, warn when independence is assumed.
-- [ ] **P6 — Product:** Saved forecast snapshots, model versions, performance dashboard, error monitoring, accessibility, mobile performance, verified provider-approved handoff only.
+**Research-only NFL player-prop analysis site. No validated betting recommendations or game-day active verification.** The site collects ESPN public game/box-score and roster-listing snapshots and optionally FanDuel odds via server-side The Odds API. Live GitHub Pages deployment checks have passed, but the newest build must be checked by commit SHA; a successful PR test does not verify a live deployment. Public roster listing is not injury clearance or game-day active status.
 
-## Accuracy experiments (ranked)
-| Priority | Experiment | Validation |
-|---|---|---|
-| High | Expected opportunity: snaps, routes, carries, targets, red-zone share | Rolling held-out Brier/log loss vs market baseline |
-| High | Late injuries, inactive lists, role changes | Timestamped pre-kickoff evaluation; no future data |
-| High | Market-derived baseline + closing-line tracking | Incremental lift and CLV, separately from ROI |
-| High | Probability calibration by market/odds bucket | Reliability plots, sample counts, proper scoring |
-| High | Pace, team total, game script | Feature ablation by market |
-| Medium | Weather, opponent, O-line, scheme | Holdout ablation; avoid generic boosts |
-| Medium | Negative-binomial / hierarchical TD tails | Held-out 1+/2+/3+ calibration |
-| Medium | Ensemble and correlated game simulation | Time-based holdout and correlation calibration |
-| Experimental | News/social sentiment | Sourced, timestamped, compared to no-sentiment baseline |
+The project includes descriptive player baselines, chronological and season-separated yardage comparisons, held-out Brier/calibration research, opponent-context research, data-integrity gates, mobile dashboards, and read-only deployment health. No historical win rate or profit edge is established.
 
-## Scoreboard
-Store an append-only **pre-kickoff** record: model version, forecast time, player/game/market/line, bookmaker odds and fetch time, probability, uncertainty, pick decision, and eventual result. Never rewrite history after games.
+## Source and reliability limitations
 
-Primary: Brier, log loss, calibration curves, sample sizes. Secondary: CLV, realized ROI with confidence intervals, latency, coverage. Avoid cherry-picking and claiming profitability from small samples.
+- **Historical ESPN box scores:** Rolling recent-game collection plus independently cached 2024 and 2025 NFL season archives. Archived seasons are bounded, may have missing summaries, and are not certified complete. Never interpret a count of collected games as full schedule coverage.
+- **Archives:** Reject wrong-season events and impossible counts. Cache only archives meeting coverage thresholds. Merge complete event groups without duplicates, with an 80,000-row cap. Recent sample cache is saved before archive merging, preventing stale mixed-source restoration.
+- **Roster:** ESPN team listing is a point-in-time identity cross-check, **not** proof of active, injury-free, or expected playing status.
+- **Odds:** The Odds API FanDuel sample covers at most two upcoming events. The optional server-side key may be missing, and prices can change. No sportsbook handoff is connected.
+- **Model:** Historical over probabilities and opponent-context factors are uncalibrated research. The readiness gate always sets `prediction_ready: false` and market audit `recommended: false`.
+- **Evaluation:** Rolling dates and season-separated training tests are retrospective, may have incomplete selection and correlated observations. Opponent ratios can reflect usage and opponent schedule, not necessarily defensive strength.
 
-## Experiment log
-| Date | Hypothesis | Baseline | Variant | Test window / N | Score | Decision |
-|---|---|---|---|---|---|---|
-| TBD | Opportunity-adjusted TD improves calibration | Market-only | Role + red zone | TBD | Brier/log loss | Not started |
+## Current engineering priorities
 
-## Release log
-| Date | PR | Change | Verification | Deployment |
-|---|---|---|---|---|
-| 2026-11-22 | #1 | Workflow, checks, tests, security | PR verify passed | Main deploy not yet confirmed |
+1. **P0: Production correctness:** Verify latest main deployment with exact release SHA, archive coverage, data freshness, and UI smoke tests; fix deployment failures before further modeling.
+2. **P0: Data identity and coverage:** Confirm ESPN roster parser against live responses, improve player/team/market reconciliation, quantify archive gaps, and avoid silent missing-data assumptions.
+3. **P1: Independent availability:** Evaluate a reliable, permission-appropriate source for injury designations and official game-day inactives. Separate reported status from verified active; do not automatically promote predictions.
+4. **P1: Historical market data:** Store immutable, timestamped pre-kickoff sportsbook lines and forecasts before claiming value or backtest ROI.
+5. **P2: Calibration and opponent research:** Evaluate per-market, per-line, per-season Brier/log loss, MAE, uncertainty and prospective lift versus market-only baselines. Retain `research_only` until evidence is sufficient.
+6. **P3: Product polish:** Consolidate old duplicate pages, improve mobile load time and accessibility, and document data contracts and collector operations.
+7. **P4: Parlay simulation:** Only after independently validated single-leg probabilities and correlation models; no naive independence claims.
 
-## Architecture
-Licensed feeds → server-side ingestion → normalized historical datastore → feature pipeline → versioned calibrated model → immutable forecast snapshot → API/cache → GitHub Pages iPhone frontend. Pages cannot run a persistent Python backend.
+## Recent verified work
 
-## Immediate next tasks
-1. Verify production Pages deployment and iPhone display.
-2. Define normalized odds/stats data contract and assess licensed provider coverage.
-3. Build reproducible baseline evaluation harness with synthetic fixtures.
+| PR | Outcome |
+|---|---|
+| #47 | Frozen pre-season opponent-model evaluation |
+| #48 | 2025 ESPN archive collection and complete-game merge |
+| #49 | Mobile research-readiness summary |
+| #50 | Archive validation and cache integrity |
+| #51 | 2024 archive and three-season research collection |
+| #52 | Indexed, leakage-safe opponent-model lookups |
+| #53 | Raw-history cache separation, larger merge cap, corrected coverage denominator |
+| #54 | Exact deployed commit verification and stronger JSON contracts |
 
-## Working agreement
-“Continue NFL-Edge using `NFL-EDGE-PROJECT-TRACKER.md` as the plan. Create a branch, make the smallest testable change, run checks, open a PR, explain results and limitations, and update the tracker. Merge only when I approve unless I explicitly authorize auto-merge.”
+All listed PRs passed pull-request CI and were merged. Live deployment is verified separately through the Pages workflow.
 
-**Boundary:** All NFL predictions are uncertain. Favor calibration and reproducible evidence over exaggerated confidence.
+## Project structure
+
+- `.github/workflows/pages.yml` — CI, ESPN/odds collection, data evaluation, safety gates, static Pages publishing and live checks.
+- `scripts/fetch_*.py` — bounded source collectors; `scripts/check_season_archive.py` and `scripts/merge_season_archive.py` validate and combine seasons.
+- `scripts/build_*.py`, `scripts/evaluate_*.py` — descriptive stats, matchup joins, calibration and research-only comparisons.
+- `scripts/check_data_contracts.py`, `scripts/check_generated_health.py`, `scripts/check_live_pages.py` — build and deployed-site safety checks.
+- `tests/` — Python offline regression tests and Node UI smoke tests.
+- `index.html` — game-day homepage; `dashboard.html` — read-only GitHub command center; other HTML pages are focused research views.
+- `data/*.json` — generated in GitHub Actions, not hand-edited model outputs.
+
+## Workflow and acceptance criteria
+
+For each change: inspect current code, add tests for the failure, create a branch and PR, require successful verify CI, squash merge, then verify the actual main-branch deployment and published commit. Never report PR success as production success. Keep release notes and this tracker current. Avoid claiming that an injury/roster source proves player participation or that retrospective accuracy establishes betting profitability.
+
+## User review needed
+
+- Whether to remove the legacy 134 KB `nfl-edge-terminal.html`, `home-next.html`, and demo pages after preserving any desired features.
+- Whether to pay for broader historical odds, injury/inactives and player-opportunity data.
+- Which specific prop markets and sportsbooks to prioritize once trustworthy inputs exist.
