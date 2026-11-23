@@ -19,6 +19,7 @@ DATA = {
     "data/opponent_holdout.json": ("metrics", "status"),
     "data/opponent_rolling.json": ("windows", "prediction_ready", "status"),
     "data/opponent_seasons.json": ("tests", "prediction_ready", "status"),
+    "data/research_status.json": ("readiness_blockers", "prediction_ready", "status"),
     "data/opponent_evaluation.json": ("metrics", "status"),
     "data/feed_integrity.json": ("warnings", "errors", "status"),
     "data/roster_quality.json": ("teams_requested", "prediction_ready"),
@@ -51,6 +52,8 @@ def check(base=DEFAULT_BASE, get=fetch):
             if not isinstance(data, dict) or any(k not in data for k in required):
                 errors.append(f"{path}: invalid JSON contract")
                 continue
+            if path.endswith("research_status.json") and data["prediction_ready"] is not False:
+                errors.append(f"{path}: research cannot be prediction ready")
             if path.endswith("roster_quality.json") and data["prediction_ready"] is not False:
                 errors.append(f"{path}: must not mark predictions ready")
             if path.endswith("feed_integrity.json") and data.get("errors"):
