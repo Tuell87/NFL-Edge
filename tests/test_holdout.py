@@ -46,6 +46,15 @@ class HoldoutTests(unittest.TestCase):
         result=mod.evaluate(rows)
         self.assertEqual(result["evidence_status"],"preliminary")
         self.assertTrue(all(not m["prediction_ready"] for m in result["metrics"]))
+    def test_calibration_bin_boundaries_and_empty_bins(self):
+        result=mod.calibration_bins({("rushing",24.5):[(0.0,0),(0.2,1),(0.8,1),(1.0,0)]})
+        self.assertEqual([b["observations"] for b in result],[1,1,0,0,2])
+        self.assertIsNone(result[2]["observed_rate"])
+        self.assertTrue(all(b["evidence_status"]=="insufficient_evidence" for b in result))
+    def test_calibration_uses_only_holdout_outcomes(self):
+        rows=[row(i,f"2026-09-{i+1:02d}",20 if i<9 else 100) for i in range(12)]
+        result=mod.evaluate(rows)
+        self.assertEqual(sum(b["observations"] for b in result["calibration_bins"]),result["observations"])
     def test_missing_dates_do_not_crash(self):
         self.assertEqual(mod.evaluate([row("a","not-a-date",20)])["status"],"insufficient_data")
 if __name__=="__main__":

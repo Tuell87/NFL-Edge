@@ -18,6 +18,29 @@ MIN_PRIOR = 5
 HOLDOUT_FRACTION = 0.25
 MIN_HOLDOUT_OBSERVATIONS = 30
 MIN_HOLDOUT_DATES = 4
+CALIBRATION_EDGES = (0.0, 0.2, 0.4, 0.6, 0.8, 1.0)
+MIN_BIN_OBSERVATIONS = 30
+
+def calibration_bins(scores):
+    """Bucket held-out estimates only; never mix training outcomes into bins."""
+    buckets = [[] for _ in range(len(CALIBRATION_EDGES)-1)]
+    for pairs in scores.values():
+        for probability, outcome in pairs:
+            if probability is None or not 0 <= probability <= 1 or outcome not in (0, 1):
+                continue
+            index = min(int(probability * 5), 4)
+            buckets[index].append((probability, outcome))
+    result = []
+    for index, pairs in enumerate(buckets):
+        n = len(pairs)
+        result.append({"range_start":CALIBRATION_EDGES[index],
+                       "range_end":CALIBRATION_EDGES[index+1],
+                       "observations":n,
+                       "mean_predicted":round(sum(p for p, _ in pairs)/n, 4) if n else None,
+                       "observed_rate":round(sum(y for _, y in pairs)/n, 4) if n else None,
+                       "evidence_status":"preliminary" if n >= MIN_BIN_OBSERVATIONS else "insufficient_evidence"})
+    return result
+
 
 def valid_date(value):
     try:
@@ -40,7 +63,7 @@ def evaluate(rows):
         dates.add(date)
     days = sorted(dates)
     if len(days) < 8:
-        return {"status":"insufficient_data","holdout_start":None,"observations":0,"metrics":[]}
+        return {"status":"insufficient_data","holdout_start":None,"observations":0,"metrics":[],"calibration_bins":[]}
     cut = max(1, int(len(days) * (1-HOLDOUT_FRACTION)))
     if cut >= len(days):
         cut = len(days)-1
@@ -87,7 +110,8 @@ def evaluate(rows):
             "holdout_dates":len(days)-cut,
             "observations":sum(m["observations"] for m in metrics),
             "evidence_status":"preliminary" if metrics and all(m["evidence_status"]=="preliminary" for m in metrics) else "insufficient_holdout_evidence",
-            "metrics":metrics}
+            "metrics":metrics,
+            "calibration_bins":calibration_bins(scores)}
 
 def main():
     OUTPUT.parent.mkdir(parents=True,exist_ok=True)
@@ -98,7 +122,7 @@ def main():
     except (OSError,ValueError,TypeError):
         result={"status":"unavailable","holdout_start":None,"observations":0,"metrics":[]}
     result["method"]="Chronological last-quarter-of-observed-game-dates holdout; fixed Beta(2,2) prior and five prior games; includes a training-period pooled-rate benchmark with the same smoothing; no tuning on holdout"
-    result["limitations"]="Held-out dates are from a bounded historical sample, not a truly untouched future prospective trial. No injury, roster, opponent or sportsbook-line adjustments. Illustrative yardage thresholds; at least 30 observations across at least four held-out dates per metric are required even for preliminary evidence. Observations may be correlated across players and lines. No verified betting edge."
+    result["limitations"]="Held-out dates are from a bounded historical sample, not a truly untouched future prospective trial. No injury, roster, opponent or sportsbook-line adjustments. Illustrative yardage thresholds; at least 30 observations across at least four held-out dates per metric are required even for preliminary evidence. Calibration bins pool illustrative thresholds and correlated player observations; a minimum of 30 observations per bin is required for a preliminary label. Observations may be correlated across players and lines. No verified betting edge."
     OUTPUT.write_text(json.dumps(result,indent=2))
     print("Out-of-time holdout:",result["status"],result["observations"])
 
