@@ -55,6 +55,17 @@ class HistoryTests(unittest.TestCase):
         self.assertEqual(rows,[])
         self.assertEqual(games,0)
 
+    def test_scoreboard_failures_are_counted(self):
+        diagnostics={}
+        def fetch(url):
+            if "dates=20261115" in url:
+                raise RuntimeError("network unavailable")
+            return {"events":[]}
+        events=mod.recent_completed_events(datetime(2026,11,22,tzinfo=timezone.utc),fetch,diagnostics)
+        self.assertEqual(events,[])
+        self.assertEqual(diagnostics["scoreboard_days_attempted"],126)
+        self.assertEqual(diagnostics["scoreboard_days_failed"],1)
+        self.assertFalse(diagnostics["event_cap_reached"])
     def test_row_limit_does_not_publish_partial_game(self):
         original_extract=mod.players.extract
         original_limit=mod.MAX_ROWS
