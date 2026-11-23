@@ -46,7 +46,7 @@ def build(history, odds, matchups, now):
         if not name:
             continue
         groups[(name, category)][str(row["event_id"])] = (str(row["game_date"]), yards)
-    matchup_keys = {(norm(m.get("player")), m.get("market"), m.get("game_start")):
+    matchup_keys = {(norm(m.get("player")), m.get("market"), parse_time(m.get("game_start"))):
                     m for m in matchups if m.get("opponent")}
     candidates = defaultdict(list)
     for item in odds.get("markets", []):
@@ -58,7 +58,7 @@ def build(history, odds, matchups, now):
             or not math.isfinite(line) or not kickoff or kickoff <= now
             or not updated or not timedelta(0) <= now - updated <= MAX_AGE):
             continue
-        key = (norm(item.get("player")), item["market"], item.get("commence_time"))
+        key = (norm(item.get("player")), item["market"], kickoff)
         candidates[key].append(item)
     output = []
     for key, selections in candidates.items():
