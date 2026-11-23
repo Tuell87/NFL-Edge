@@ -1,0 +1,16 @@
+name: NFL Edge checks
+on:
+  push:
+  pull_request:
+    branches: [main]
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: python3 scripts/check_release.py
+      - run: python3 -m unittest discover -s tests
+      - run: node --test tests/*.test.cjs
+      - run: python3 -m compileall -q scripts tests
