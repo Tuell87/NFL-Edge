@@ -42,6 +42,14 @@ class HistoryTests(unittest.TestCase):
         events=mod.recent_completed_events(datetime(2026,11,22,tzinfo=timezone.utc),fetch)
         self.assertEqual(events,[])
 
+    def test_recent_games_have_priority(self):
+        def fetch(url):
+            return {"events":[
+                {"id":"old","date":"2026-09-01T20:00:00Z","status":{"type":{"state":"post"}}},
+                {"id":"new","date":"2026-11-15T20:00:00Z","status":{"type":{"state":"post"}}}]}
+        events=mod.recent_completed_events(datetime(2026,11,22,tzinfo=timezone.utc),fetch)
+        self.assertEqual([event["id"] for event in events],["new","old"])
+
     def test_summary_failure_skipped(self):
         rows,games=mod.assemble([{"id":"123"}],lambda url: (_ for _ in ()).throw(RuntimeError("unavailable")))
         self.assertEqual(rows,[])

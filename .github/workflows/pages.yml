@@ -55,7 +55,7 @@ jobs:
         uses: actions/cache@v4
         with:
           path: data/history.json
-          key: nfl-history-v3-all-days-${{ steps.history_day.outputs.day }}
+          key: nfl-history-v4-recent-first-${{ steps.history_day.outputs.day }}
       - name: Collect historical NFL player results
         if: steps.history_cache.outputs.cache-hit != 'true'
         run: python3 scripts/fetch_history.py
