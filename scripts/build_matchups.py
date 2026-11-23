@@ -10,7 +10,7 @@ def build(games, players, now):
     for game in games:
         try:
             start = datetime.fromisoformat(str(game.get("start", "")).replace("Z", "+00:00"))
-        except ValueError:
+        except (TypeError, ValueError):
             continue
         if start.tzinfo is None or start <= now or game.get("state") != "pre":
             continue
@@ -22,12 +22,14 @@ def build(games, players, now):
     matches = []
     for player in players:
         team = str(player.get("team") or "").strip()
-        if not team:
+        player_id = str(player.get("player_id") or "").strip()
+        player_name = str(player.get("player") or "").strip()
+        if not team or not player_id or not player_name:
             continue
         for game in upcoming:
             if team not in (game["home"], game["away"]):
                 continue
-            matches.append({"player": player.get("player"), "team": team,
+            matches.append({"player": player_name, "player_id": player_id, "team": team,
                             "market": player.get("market"),
                             "games_sampled": player.get("games"),
                             "opponent": game["away"] if team == game["home"] else game["home"],
@@ -46,7 +48,7 @@ def main():
         matches = build(games.get("games", []) if games.get("status") == "ok" else [],
                         baseline.get("players", []) if baseline.get("status") == "ok" else [],
                         datetime.now(timezone.utc))
-        result = {"status": "ok" if matches else "no_verified_matchups",
+        result = {"status": "ok" if matches else "no_upcoming_player_matchups",
                   "checked_at": datetime.now(timezone.utc).isoformat(), "matchups": matches}
     except (OSError, ValueError, TypeError):
         result = {"status": "unavailable", "matchups": []}
