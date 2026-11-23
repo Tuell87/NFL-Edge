@@ -15,6 +15,9 @@ select{font:inherit;min-height:44px;margin-left:8px}ul{padding-left:25px}
 #box-score summary{min-height:28px}
 #box-score ul{margin-top:0}
 #stat-category{max-width:100%;margin:0 0 8px;font-size:16px}
+.team-stat-scroll{overflow:auto}
+.team-stat-scroll table{width:100%;border-collapse:collapse}
+.team-stat-scroll th,.team-stat-scroll td{text-align:left;padding:8px;border-bottom:1px solid #34485e}
 </style>
 <link rel="stylesheet" href="./mobile-navigation.css">
 </head>
@@ -35,6 +38,12 @@ select{font:inherit;min-height:44px;margin-left:8px}ul{padding-left:25px}
     <h2 id="score-heading">Score</h2>
     <div id="scores" class="scores"></div>
     <a id="espn-game" hidden>Game details on ESPN</a>
+  </section>
+  <section id="team-box" hidden>
+    <h2>Team stats</h2>
+    <div class="team-stat-scroll"><table aria-label="Team box score">
+      <thead id="team-header"></thead><tbody id="team-stats"></tbody>
+    </table></div>
   </section>
   <section id="box-score" hidden>
     <h2>Player box score</h2>
@@ -163,18 +172,45 @@ function showScore(game, final) {
  }
 }
 
+function showTeamStats(teams) {
+ if (!teams.length) return;
+ const header = element('tr');
+ header.append(element('th', 'Stat'), ...teams.map(team => element('th', team.name || 'Team')));
+ for (const heading of header.children) heading.scope = 'col';
+ $('team-header').append(header);
+ const statKeys = new Set(teams.flatMap(team => Object.keys(team.stats)));
+ for (const key of statKeys) {
+  const row = element('tr');
+  const heading = element('th', teams.find(team => team.stats[key]).stats[key].label);
+  heading.scope = 'row';
+  row.append(heading, ...teams.map(team => element('td', team.stats[key]?.value ?? '—')));
+  $('team-stats').append(row);
+ }
+ $('team-box').hidden = false;
+}
+
 async function showBoxScore(game) {
  $('box-score').hidden = false;
- let rows;
+ let rows = [];
  try {
-  const snapshot = await readSnapshot('players');
-  rows = (snapshot.players || []).filter(row => String(row.event_id) === String(game.id));
+  const snapshot = await readSnapshot('game_box_scores');
+  const box = snapshot.games?.[String(game.id)];
+  rows = box?.players || [];
+  showTeamStats(box?.teams || []);
  } catch {
-  $('box-status').textContent = 'The player stats feed is unavailable.';
-  return;
+  // A previously deployed release may only have the recent-player snapshot.
  }
  if (!rows.length) {
-  $('box-status').textContent = 'Player stats for this game are outside the current snapshot.';
+  try {
+   const recent = await readSnapshot('players');
+   rows = (recent.players || []).filter(row => String(row.event_id) === String(game.id));
+  } catch {
+   $('box-status').textContent = 'The player stats feed is unavailable.';
+   return;
+  }
+ }
+ if (!rows.length) {
+  $('box-status').textContent = 'Player stats for this game are unavailable in the current feed. Open the ESPN box score for more.';
   return;
  }
 
