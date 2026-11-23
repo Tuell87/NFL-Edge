@@ -41,8 +41,8 @@ def build(history):
     for group in grouped.values():
         latest.extend(sorted(group.values(), key=lambda r: (r["game_date"], r["event_id"]),
                              reverse=True)[:RECENT_PER_PLAYER_CATEGORY])
-    latest.sort(key=lambda r: (r["player"].casefold(), r["category"],
-                               r["game_date"]), reverse=False)
+    latest.sort(key=lambda r: r["game_date"], reverse=True)
+    latest.sort(key=lambda r: (r["player"].casefold(), r["category"]))
     return {
         "status": "ok" if latest and history.get("status") == "ok" else "insufficient_data",
         "checked_at": history.get("checked_at"),
