@@ -59,6 +59,17 @@ jobs:
       - name: Collect historical NFL player results
         if: steps.history_cache.outputs.cache-hit != 'true'
         run: python3 scripts/fetch_history.py
+      - name: Restore cached 2025 NFL season archive
+        id: archive_cache
+        uses: actions/cache@v4
+        with:
+          path: data/archive_2025.json
+          key: nfl-season-2025-archive-v1
+      - name: Collect 2025 season archive when not cached
+        if: steps.archive_cache.outputs.cache-hit != 'true'
+        run: python3 scripts/fetch_season_archive.py
+      - name: Merge complete 2025 games with current history
+        run: python3 scripts/merge_season_archive.py
       - name: Measure historical data completeness
         run: python3 scripts/build_history_quality.py
       - name: Evaluate historical over-probability estimates
