@@ -25,7 +25,8 @@ def evaluate(rows):
     if len(dates) < MIN_DATES:
         result = opponent.evaluate([], test_start=None)
         result.update({"status": "insufficient_data", "holdout_start": None,
-                       "holdout_dates": 0, "observed_dates": len(dates)})
+                       "holdout_dates": 0, "observed_dates": len(dates),
+                       "evidence_status": "insufficient_holdout_evidence"})
         return result
     cut = max(1, int(len(dates) * (1 - HOLDOUT_FRACTION)))
     cut = min(cut, len(dates) - 1)
