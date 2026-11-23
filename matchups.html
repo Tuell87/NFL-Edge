@@ -6,6 +6,8 @@
 .pagination button{min-height:44px;padding:8px 12px;background:#17283e;color:inherit;border:1px solid #48627b;border-radius:8px}
 .pagination button:disabled{opacity:.55}
 :focus-visible{outline:2px solid #55e5b3;outline-offset:2px}
+.search-picker{min-width:0}.search-picker [hidden]{display:none}.search-picker select{width:100%;min-height:44px;font-size:16px}
+@media(max-width:520px){.toolbar .search-picker{grid-column:1/-1}}
 </style><link rel="stylesheet" href="./mobile-navigation.css">
 </head><body>
 <nav class="mobile-sections" aria-label="Main site sections">
@@ -16,12 +18,20 @@
   <a href="./#project">Project</a>
 </nav>
 <main><nav><a href="./#players">← Players</a> · <a href="./#games">Games</a> · <a href="./history.html">History</a></nav><h1>Upcoming Player Matchups</h1><p class="muted small">Compact schedule-to-player research. Roster listing is not proof of game-day availability. <strong>Injury and active status are unverified; no betting picks.</strong></p>
-<div class="toolbar"><input id="search" type="search" placeholder="Player or team…" aria-label="Search players or teams"><select id="market" aria-label="Filter stat market"><option value="">All markets</option></select><select id="quality" aria-label="Filter historical sample"><option value="">All samples</option><option value="sufficient_recent_sample">Recent sample</option><option value="limited_sample">Limited sample</option></select></div>
+<div class="toolbar"><div class="search-picker">
+<label for="search-choice">Player or team</label>
+<select id="search-choice" data-default-label="All players and teams">
+  <option value="">All players and teams</option>
+  <option value="custom">Custom search…</option>
+</select>
+<input id="search" type="search" aria-label="Custom search" placeholder="Player or team…" hidden>
+</div><select id="market" aria-label="Filter stat market"><option value="">All markets</option></select><select id="quality" aria-label="Filter historical sample"><option value="">All samples</option><option value="sufficient_recent_sample">Recent sample</option><option value="limited_sample">Limited sample</option></select></div>
 <p id="status" role="status" class="muted small">Loading…</p><div id="list"></div>
 <div id="pagination" class="pagination" role="group" aria-label="Matchup results pages" hidden>
 <button id="previous" type="button">Previous</button><button id="next" type="button">Next</button>
 </div>
-</main><script>'use strict';const $=id=>document.getElementById(id);const pageSize=20;let rows=[],page=0;function el(tag,cls,value){const n=document.createElement(tag);if(cls)n.className=cls;if(value!==undefined)n.textContent=String(value);return n;}
+</main><script src="./search-choices.js"></script>
+<script>'use strict';const $=id=>document.getElementById(id);const pageSize=20;let rows=[],page=0;function el(tag,cls,value){const n=document.createElement(tag);if(cls)n.className=cls;if(value!==undefined)n.textContent=String(value);return n;}
 function render(){const root=$('list');root.replaceChildren();const q=$('search').value.trim().toLowerCase(),market=$('market').value,quality=$('quality').value;const filtered=rows.filter(r=>(!q||[r.player,r.team,r.opponent].some(v=>String(v||'').toLowerCase().includes(q)))&&(!market||r.market===market)&&(!quality||r.sample_quality===quality));const lastPage = Math.max(0, Math.ceil(filtered.length / pageSize) - 1);
 page = Math.max(0, Math.min(lastPage, page));
 const start = page * pageSize;
@@ -33,7 +43,7 @@ $('status').textContent = visible.length
   ? `Showing ${start + 1}–${start + visible.length} of ${filtered.length} matching records`
   : rows.length ? 'No matching player records.' : 'No upcoming player matchups.';
 for(const r of visible){const item=el('article','result'),left=el('div'),title=el('strong','',String(r.player||'Unknown')+' · '+String(r.market||'Unknown market')),subtitle=el('span','muted',String(r.team||'?')+' vs '+String(r.opponent||'?')+' · '+String(r.games_sampled??'?')+' past games'),btn=el('button','','Details'),details=el('div','detail');details.hidden=true;const wrapper=el('div');left.append(title,subtitle);btn.type='button';btn.setAttribute('aria-expanded','false');btn.setAttribute('aria-label','Toggle details for '+String(r.player||'player'));const lines=[['Team source', r.team_source==='espn_roster_snapshot'?'ESPN roster listing':'Latest historical box score'],['Roster listing',r.roster_listing==='listed'?'Listed by ESPN ID (not active verification)':r.roster_listing==='not_found_in_snapshot'?'Not found in snapshot':'Unavailable'],['Historical sample',String(r.sample_quality||'unknown').replaceAll('_',' ')],['Sample limitations',Array.isArray(r.sample_quality_reasons)?r.sample_quality_reasons.join(', ').replaceAll('_',' '):'Unknown'],['Readiness blockers',Array.isArray(r.readiness_blockers)?r.readiness_blockers.join(', ').replaceAll('_',' '):'Verification unavailable'],['Availability','Unverified · no prediction']];for(const [label,value] of lines)details.append(el('p','',label+': '+value));btn.addEventListener('click',()=>{details.hidden=!details.hidden;btn.setAttribute('aria-expanded',String(!details.hidden));btn.textContent=details.hidden?'Details':'Close';});item.append(left,btn);wrapper.append(item,details);root.append(wrapper);}}
-async function load(){try{const res=await fetch('./data/matchups.json',{cache:'no-store'});if(!res.ok)throw Error('missing');const data=await res.json();rows=Array.isArray(data.matchups)?data.matchups:[];const market=$('market');for(const value of [...new Set(rows.map(r=>r.market).filter(Boolean))].sort()){const option=el('option','',value);option.value=value;market.append(option);}render();}catch(e){$('status').textContent='Matchup data unavailable';}}
+async function load(){try{const res=await fetch('./data/matchups.json',{cache:'no-store'});if(!res.ok)throw Error('missing');const data=await res.json();rows=Array.isArray(data.matchups)?data.matchups:[];if ($('search-choice')) updateSearchChoices(rows, ["player","team","opponent"]);const market=$('market');for(const value of [...new Set(rows.map(r=>r.market).filter(Boolean))].sort()){const option=el('option','',value);option.value=value;market.append(option);}render();}catch(e){$('status').textContent='Matchup data unavailable';}}
 for (const id of ['search', 'market', 'quality']) {
   $(id).addEventListener(id === 'search' ? 'input' : 'change', () => {
     page = 0;
@@ -48,4 +58,5 @@ function changePage(step) {
 $('status').tabIndex = -1;
 $('previous').addEventListener('click', () => changePage(-1));
 $('next').addEventListener('click', () => changePage(1));
+if ($('search-choice')) updateSearchChoices([], ["player","team","opponent"]);
 load();</script></body></html>

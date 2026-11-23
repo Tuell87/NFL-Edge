@@ -198,6 +198,7 @@ jobs:
           mkdir -p _site
           cp index.html _site/index.html
           cp game.html _site/game.html
+          cp search-choices.js _site/search-choices.js
           cp mobile-navigation.css _site/mobile-navigation.css
           cp dashboard.html _site/dashboard.html
           cp legacy-demo.html _site/legacy-demo.html

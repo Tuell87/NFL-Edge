@@ -1,5 +1,5 @@
 <!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#0b1220"><title>NFL Edge | Market Comparison</title><style>
-:root{font-family:system-ui,-apple-system,sans-serif;color:#eaf3ff;background:#0b1220}*{box-sizing:border-box}body{margin:0}main{max-width:780px;margin:auto;padding:24px 16px 60px}a{color:#4ee1ad}.panel{background:#152338;border:1px solid #304158;border-radius:16px;padding:19px;margin:15px 0}h1{font-size:28px}label{display:block;margin:13px 0 5px;color:#b8cbe0}input{background:#0d1b2c;border:1px solid #52667d;border-radius:9px;padding:13px;color:white;width:100%;font-size:17px}.grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}.stat{font-size:27px;color:#4ee1ad;font-weight:800}button{background:#178263;color:white;border:0;border-radius:10px;padding:13px 16px;font-weight:700;font-size:16px}.muted{color:#a4b7cc}.small{font-size:13px}.warn{color:#ffd38a}@media(max-width:450px){.grid{grid-template-columns:1fr}}
+:root{font-family:system-ui,-apple-system,sans-serif;color:#eaf3ff;background:#0b1220}*{box-sizing:border-box}body{margin:0}main{max-width:780px;margin:auto;padding:24px 16px 60px}a{color:#4ee1ad}.panel{background:#152338;border:1px solid #304158;border-radius:16px;padding:19px;margin:15px 0}h1{font-size:28px}label{display:block;margin:13px 0 5px;color:#b8cbe0}input,select{box-sizing:border-box;background:#0d1b2c;border:1px solid #52667d;border-radius:9px;padding:13px;color:white;width:100%;font-size:17px}.grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}.stat{font-size:27px;color:#4ee1ad;font-weight:800}button{background:#178263;color:white;border:0;border-radius:10px;padding:13px 16px;font-weight:700;font-size:16px}.muted{color:#a4b7cc}.small{font-size:13px}.warn{color:#ffd38a}@media(max-width:450px){.grid{grid-template-columns:1fr}}
 </style><link rel="stylesheet" href="./mobile-navigation.css">
 </head><body>
 <nav class="mobile-sections" aria-label="Main site sections">
@@ -10,7 +10,69 @@
   <a href="./#project">Project</a>
 </nav>
 <main><a href="./">← NFL-Edge home</a><h1>Two-way Market Comparison</h1><p class="muted">Enter both sides of the <strong>same market, line, and sportsbook</strong> to estimate a no-vig probability. This is a market-based benchmark, not an independent prediction.</p>
-<div class="panel"><h2>FanDuel odds</h2><label for="yes">YES / Over American odds</label><input id="yes" type="number" step="1" inputmode="numeric" value="-130"><label for="no">NO / Under American odds</label><input id="no" type="number" step="1" inputmode="numeric" value="+110"><p><button id="calculate">Calculate fair-price benchmark</button></p><p id="message" role="status" class="warn small"></p></div>
+<div class="panel"><h2>FanDuel odds</h2><label for="yes-choice">YES / Over American odds</label><select id="yes-choice">
+  <option value="-500">-500</option>
+  <option value="-400">-400</option>
+  <option value="-300">-300</option>
+  <option value="-250">-250</option>
+  <option value="-200">-200</option>
+  <option value="-175">-175</option>
+  <option value="-150">-150</option>
+  <option value="-130" selected>-130</option>
+  <option value="-120">-120</option>
+  <option value="-115">-115</option>
+  <option value="-110">-110</option>
+  <option value="-105">-105</option>
+  <option value="100">+100</option>
+  <option value="105">+105</option>
+  <option value="110">+110</option>
+  <option value="115">+115</option>
+  <option value="120">+120</option>
+  <option value="130">+130</option>
+  <option value="150">+150</option>
+  <option value="175">+175</option>
+  <option value="200">+200</option>
+  <option value="250">+250</option>
+  <option value="300">+300</option>
+  <option value="400">+400</option>
+  <option value="500">+500</option>
+  <option value="custom">Custom…</option>
+</select>
+<div id="yes-custom" hidden>
+  <label for="yes">Custom YES / Over odds</label>
+  <input id="yes" type="number" step="1" inputmode="numeric" value="-130">
+</div><label for="no-choice">NO / Under American odds</label><select id="no-choice">
+  <option value="-500">-500</option>
+  <option value="-400">-400</option>
+  <option value="-300">-300</option>
+  <option value="-250">-250</option>
+  <option value="-200">-200</option>
+  <option value="-175">-175</option>
+  <option value="-150">-150</option>
+  <option value="-130">-130</option>
+  <option value="-120">-120</option>
+  <option value="-115">-115</option>
+  <option value="-110">-110</option>
+  <option value="-105">-105</option>
+  <option value="100">+100</option>
+  <option value="105">+105</option>
+  <option value="110" selected>+110</option>
+  <option value="115">+115</option>
+  <option value="120">+120</option>
+  <option value="130">+130</option>
+  <option value="150">+150</option>
+  <option value="175">+175</option>
+  <option value="200">+200</option>
+  <option value="250">+250</option>
+  <option value="300">+300</option>
+  <option value="400">+400</option>
+  <option value="500">+500</option>
+  <option value="custom">Custom…</option>
+</select>
+<div id="no-custom" hidden>
+  <label for="no">Custom NO / Under odds</label>
+  <input id="no" type="number" step="1" inputmode="numeric" value="+110">
+</div><p><button id="calculate">Calculate fair-price benchmark</button></p><p id="message" role="status" class="warn small"></p></div>
 <div class="grid"><div class="panel"><div class="muted small">YES break-even probability</div><div class="stat" id="yes-raw">—</div></div><div class="panel"><div class="muted small">NO break-even probability</div><div class="stat" id="no-raw">—</div></div><div class="panel"><div class="muted small">Market overround</div><div class="stat" id="margin">—</div></div><div class="panel"><div class="muted small">No-vig YES estimate</div><div class="stat" id="fair">—</div></div></div>
 <div class="panel"><h2>How to interpret this</h2><p class="muted">The no-vig estimate normalizes the two implied probabilities to sum to 100%. It is a simple proportional-vig method, not necessarily the true fair probability. Compare this baseline with a separately calibrated model before evaluating betting value.</p><p class="muted small">Do not combine prices from different sportsbooks or different prop thresholds. Enter odds manually; this page does not fetch or verify live FanDuel prices, place bets, or save information.</p></div>
 </main><script>
@@ -18,9 +80,20 @@
 const $=id=>document.getElementById(id);
 const implied=o=>o>0?100/(o+100):-o/(-o+100);
 const valid=o=>Number.isInteger(o)&&Math.abs(o)>=100&&Math.abs(o)<=100000;
-function calculate(){const yes=Number($('yes').value),no=Number($('no').value);
+function oddsValue(id) {
+  const choice = $(id + '-choice').value;
+  return choice === 'custom' ? Number($(id).value) : Number(choice);
+}
+for (const id of ['yes', 'no']) {
+  $(id + '-choice').addEventListener('change', () => {
+    const custom = $(id + '-choice').value === 'custom';
+    $(id + '-custom').hidden = !custom;
+    if (custom) $(id).focus();
+  });
+}
+function calculate(){const yes=oddsValue('yes'),no=oddsValue('no');
 for(const id of ['yes-raw','no-raw','margin','fair'])$(id).textContent='—';
-if(!valid(yes)||!valid(no)||$('yes').value.trim()===''||$('no').value.trim()===''){$('message').textContent='Enter valid American odds for both sides (+100 or greater, or -100 or less).';return;}
+if(!valid(yes)||!valid(no)){$('message').textContent='Enter valid American odds for both sides (+100 or greater, or -100 or less).';return;}
 const a=implied(yes),b=implied(no),total=a+b;
 $('yes-raw').textContent=(100*a).toFixed(2)+'%';$('no-raw').textContent=(100*b).toFixed(2)+'%';
 $('margin').textContent=((total-1)*100).toFixed(2)+'%';$('fair').textContent=(a/total*100).toFixed(2)+'%';
