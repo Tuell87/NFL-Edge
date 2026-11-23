@@ -20,6 +20,7 @@ REQUIRED = {
     "market_audit.json": ("rows",),
     "holdout.json": ("metrics",),
     "opponent_evaluation.json": ("metrics",),
+    "opponent_holdout.json": ("metrics",),
     "history_quality.json": ("categories",),
 }
 LIST_FIELDS = {"markets", "games", "players", "rows", "matchups", "metrics", "categories", "teams", "warnings", "errors"}

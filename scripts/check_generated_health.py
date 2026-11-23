@@ -13,6 +13,7 @@ REQUIRED = {
     "history_quality.json": ("categories",),
     "holdout.json": ("metrics",),
     "opponent_evaluation.json": ("metrics",),
+    "opponent_holdout.json": ("metrics",),
     "market_audit.json": ("rows",),
 }
 
