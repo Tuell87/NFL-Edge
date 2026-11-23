@@ -59,8 +59,28 @@ jobs:
       - name: Collect historical NFL player results
         if: steps.history_cache.outputs.cache-hit != 'true'
         run: python3 scripts/fetch_history.py
-      - name: Cache only the raw, unmerged daily historical sample
+      - name: Check daily historical sample before caching
+        id: history_quality_cache
         if: steps.history_cache.outputs.cache-hit != 'true'
+        run: |
+          python3 - <<'PY'
+          import json
+          import os
+          from pathlib import Path
+          try:
+              history = json.loads(Path("data/history.json").read_text())
+              valid = (history.get("status") == "ok" and
+                       isinstance(history.get("rows"), list) and
+                       len(history["rows"]) >= 100 and
+                       isinstance(history.get("games"), int) and
+                       history["games"] >= 2)
+          except (OSError, ValueError, TypeError):
+              valid = False
+          with open(os.environ["GITHUB_OUTPUT"], "a") as output:
+              output.write(f"cacheable={str(valid).lower()}\n")
+          PY
+      - name: Cache only the raw, unmerged daily historical sample
+        if: steps.history_cache.outputs.cache-hit != 'true' && steps.history_quality_cache.outputs.cacheable == 'true'
         uses: actions/cache/save@v4
         with:
           path: data/history.json
