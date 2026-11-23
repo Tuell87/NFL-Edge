@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """Join player history to upcoming scoreboard matchups without guessing injuries."""
+from collections import defaultdict
 import json
 import importlib.util
 spec = importlib.util.spec_from_file_location("readiness_gate", "scripts/readiness_gate.py")
@@ -11,6 +12,7 @@ from pathlib import Path
 OUTPUT = Path("data/matchups.json")
 def build(games, players, now, rosters=None):
     roster_index = {}
+    teams_by_player = defaultdict(set)
     try:
         checked = datetime.fromisoformat(str((rosters or {}).get("checked_at") or "").replace("Z", "+00:00"))
         fresh = checked.tzinfo is not None and timedelta(0) <= now - checked <= timedelta(hours=24)
@@ -22,6 +24,8 @@ def build(games, players, now, rosters=None):
         name = team.get("team")
         roster_index[name] = {str(a.get("player_id")) for a in team.get("athletes", [])
                               if a.get("player_id")}
+        for player_id in roster_index[name]:
+            teams_by_player[player_id].add(name)
     upcoming = []
     for game in games:
         try:
@@ -42,10 +46,19 @@ def build(games, players, now, rosters=None):
         player_name = str(player.get("player") or "").strip()
         if not team or not player_id or not player_name:
             continue
+        team_source = "historical_box_score"
+        listed_teams = teams_by_player.get(player_id, set())
+        if len(listed_teams) > 1:
+            continue
+        if len(listed_teams) == 1:
+            listed_team = next(iter(listed_teams))
+            if listed_team == team or team in roster_index:
+                team = listed_team
+                team_source = "espn_roster_snapshot"
         for game in upcoming:
             if team not in (game["home"], game["away"]):
                 continue
-            matches.append({"player": player_name, "player_id": player_id, "team": team,
+            matches.append({"player": player_name, "player_id": player_id, "team": team, "team_source": team_source,
                             "market": player.get("market"),
                             "games_sampled": player.get("games"),
                             "sample_quality": player.get("sample_quality", "unavailable"),
