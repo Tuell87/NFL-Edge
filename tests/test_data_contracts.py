@@ -13,7 +13,8 @@ class ContractTests(unittest.TestCase):
             for filename, fields in mod.REQUIRED.items():
                 data={"status":"ok"}
                 for field in fields:
-                    data[field]={} if filename=="evaluation.json" and field=="metrics" else []
+                    data[field]=(False if field=="prediction_ready" else
+                                 {} if filename=="evaluation.json" and field=="metrics" else [])
                 (root/filename).write_text(json.dumps(data))
             self.assertEqual(mod.validate(root),[])
     def test_missing_and_malformed_data_fail(self):
@@ -23,6 +24,24 @@ class ContractTests(unittest.TestCase):
             errors=mod.validate(root)
             self.assertTrue(any("odds.json" in e for e in errors))
             self.assertTrue(any("games.json" in e for e in errors))
+    def test_research_arrays_and_readiness_fail_closed(self):
+        with tempfile.TemporaryDirectory() as d:
+            root=Path(d)
+            for filename, fields in mod.REQUIRED.items():
+                data={"status":"ok"}
+                for field in fields:
+                    data[field]=(False if field=="prediction_ready" else
+                                 {} if filename=="evaluation.json" and field=="metrics" else [])
+                (root/filename).write_text(json.dumps(data))
+            (root/"opponent_seasons.json").write_text(json.dumps(
+                {"status":"ok","tests":{},"prediction_ready":True}))
+            (root/"research_status.json").write_text(json.dumps(
+                {"status":"research_only","readiness_blockers":{},"prediction_ready":False}))
+            errors=mod.validate(root)
+            self.assertTrue(any("tests must be list" in e for e in errors))
+            self.assertTrue(any("prediction_ready must be false" in e for e in errors))
+            self.assertTrue(any("readiness_blockers must be list" in e for e in errors))
+
     def test_wrong_shape_fails(self):
         with tempfile.TemporaryDirectory() as d:
             root=Path(d)

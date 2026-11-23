@@ -26,7 +26,8 @@ REQUIRED = {
     "research_status.json": ("readiness_blockers", "prediction_ready"),
     "history_quality.json": ("categories",),
 }
-LIST_FIELDS = {"markets", "games", "players", "rows", "matchups", "metrics", "categories", "teams", "warnings", "errors"}
+LIST_FIELDS = {"markets", "games", "players", "rows", "matchups", "metrics", "categories", "teams", "warnings", "errors", "windows", "tests", "readiness_blockers"}
+BOOLEAN_FIELDS = {"prediction_ready"}
 def validate(folder=DATA):
     errors = []
     for filename, fields in REQUIRED.items():
@@ -48,6 +49,8 @@ def validate(folder=DATA):
             elif field in LIST_FIELDS and not isinstance(document[field], list) and not (
                     filename == "evaluation.json" and field == "metrics" and isinstance(document[field], dict)):
                 errors.append(f"{filename}: {field} must be list")
+            elif field in BOOLEAN_FIELDS and document[field] is not False:
+                errors.append(f"{filename}: {field} must be false")
     return errors
 
 if __name__ == "__main__":

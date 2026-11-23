@@ -43,6 +43,19 @@ class LiveSmokeTests(unittest.TestCase):
         self.assertTrue(any("unsafe market" in error
                             for error in mod.check("https://example.com/NFL-Edge/", get)))
 
+    def test_old_release_is_not_mistaken_for_new_deployment(self):
+        def get(url):
+            path=urlparse(url).path
+            if path.endswith("research_status.json"):
+                return json.dumps({"status":"research_only","readiness_blockers":[],
+                                   "prediction_ready":False,
+                                   "release_sha":"old_commit"}).encode(), "application/json"
+            return response(path)
+        errors=mod.check("https://example.com/NFL-Edge/",get,expected_sha="new_commit")
+        self.assertTrue(any("release SHA" in error for error in errors))
+        self.assertEqual(mod.check("https://example.com/NFL-Edge/",get,
+                                   expected_sha="old_commit"),[])
+
     def test_missing_published_page_is_reported(self):
         def get(url):
             if url.endswith("opponent-holdout.html"):

@@ -49,6 +49,9 @@ def validate(folder=Path("data")):
         research = documents.get(filename, {})
         if research.get("prediction_ready") is not False:
             failures.append(f"{filename}: research must remain prediction_ready=false")
+        if filename == "opponent_seasons.json" and not isinstance(research.get("tests"), list):
+            failures.append(f"{filename}: tests must be a list")
+            continue
         for test in research.get("tests", []) if filename == "opponent_seasons.json" else []:
             if not isinstance(test, dict) or test.get("prediction_ready") is not False:
                 failures.append(f"{filename}: season test must remain research-only")
@@ -59,7 +62,11 @@ def validate(folder=Path("data")):
     if rosters.get("teams_with_rosters", 0) == 0:
         warnings.append("ESPN roster coverage unavailable; do not infer player inactivity")
     for filename, field in (("matchups.json", "matchups"), ("market_audit.json", "rows")):
-        for row in documents.get(filename, {}).get(field, []):
+        rows = documents.get(filename, {}).get(field, [])
+        if not isinstance(rows, list):
+            failures.append(f"{filename}: {field} must be a list")
+            continue
+        for row in rows:
             if not isinstance(row, dict):
                 failures.append(f"{filename}: invalid row")
                 continue

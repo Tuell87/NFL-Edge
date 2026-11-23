@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Compact fail-closed production readiness snapshot for the mobile homepage."""
 import json
+import os
 from datetime import datetime, timezone, timedelta
 from pathlib import Path
 
@@ -47,6 +48,7 @@ def build(history, rosters, matchups, seasons, rolling, now):
     return {
         "status": "research_only",
         "checked_at": now.isoformat(),
+        "release_sha": os.environ.get("GITHUB_SHA", "").strip() or None,
         "prediction_ready": False,
         "history": {"status": history.get("status", "unavailable"),
                     "rows": len(rows), "games": history.get("games", 0),
