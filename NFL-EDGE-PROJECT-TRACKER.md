@@ -47,9 +47,11 @@ All listed PRs passed pull-request CI and were merged. Live deployment is verifi
 
 The FanDuel odds page displays 20 selections per page, with player and market filters, feed and bookmaker timestamps, and a game-started label for past kickoff times.
 
-### FanDuel snapshot diagnosis
+### Scoreboard and FanDuel coverage
 
 Release `5969347` published 118 outcomes. The audit filtered 56 anytime touchdown selections and 31 unders, then rejected all 31 supported overs at the freshness check. The published outcome timestamps were all missing. [The Odds API event-odds schema](https://the-odds-api.com/liveapi/guides/v4/index.html#get-event-odds) places `last_update` on each market. The collector now reads that field. A fresh timestamp only clears the freshness check. Player identity, teams and sufficient historical samples are still required.
+
+Release `3e380f4` restored timestamps for all 118 outcomes and made 17 of 31 supported overs eligible for research comparison. All 14 remaining selections were from Packers–Rams, a game beyond the default ESPN scoreboard week. The scoreboard collector now uses ESPN calendar metadata to include pregame events from the next listed week with one additional request. The current scoreboard remains available if the next-week request fails.
 
 ## Project structure
 
