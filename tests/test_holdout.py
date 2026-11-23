@@ -59,6 +59,14 @@ class HoldoutTests(unittest.TestCase):
         self.assertEqual(sum(b["observations"] for b in recv),2)
         self.assertEqual(rush[1]["observed_rate"],1)
         self.assertEqual(recv[1]["observed_rate"],0)
+    def test_calibration_threshold_filter_isolates_lines(self):
+        scores={("rushing",24.5):[(0.3,1)],("rushing",99.5):[(0.3,0),(0.7,0)],("receiving",24.5):[(0.3,0)]}
+        selected=mod.calibration_bins(scores,"rushing",24.5)
+        self.assertEqual(sum(b["observations"] for b in selected),1)
+        self.assertEqual(selected[1]["observed_rate"],1)
+        selected=mod.calibration_bins(scores,line_filter=24.5)
+        self.assertEqual(sum(b["observations"] for b in selected),2)
+        self.assertEqual(selected[1]["observed_rate"],0.5)
     def test_calibration_uses_only_holdout_outcomes(self):
         rows=[row(i,f"2026-09-{i+1:02d}",20 if i<9 else 100) for i in range(12)]
         result=mod.evaluate(rows)
