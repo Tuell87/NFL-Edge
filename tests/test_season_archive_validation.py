@@ -21,6 +21,14 @@ class ArchiveValidationTests(unittest.TestCase):
         self.assertTrue(result["safe_to_merge"])
         self.assertTrue(result["cacheable"])
 
+    def test_2024_archive_validated_against_2024_season(self):
+        data = archive()
+        data["season"] = 2024
+        for row in data["rows"]:
+            row["game_date"] = row["game_date"].replace("2025-", "2024-")
+        self.assertTrue(mod.inspect(data, expected_season=2024)["cacheable"])
+        self.assertFalse(mod.inspect(data, expected_season=2025)["safe_to_merge"])
+
     def test_sparse_archive_may_merge_but_is_not_cached(self):
         result = mod.inspect(archive(20))
         self.assertTrue(result["safe_to_merge"])
