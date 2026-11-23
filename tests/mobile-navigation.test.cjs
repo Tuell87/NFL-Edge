@@ -44,3 +44,33 @@ test('player and historical pages return to main navigation tabs',()=>{
 test('no browser-side API key or external scripts added',()=>{
  assert.doesNotMatch(home+matchups,/api\.the-odds-api\.com|localStorage|<script[^>]+src=/);
 });
+
+test('matchup pagination can reach records beyond the old 60-row cap', async () => {
+ const vm = require('node:vm');
+ function element() {
+  return {
+   value: '', children: [], handlers: {},
+   append(...children) { this.children.push(...children); },
+   replaceChildren(...children) { this.children = children; },
+   addEventListener(type, handler) { this.handlers[type] = handler; },
+   setAttribute() {},
+   focus() { this.focused = true; },
+  };
+ }
+ const elements = Object.fromEntries(['list', 'search', 'market', 'quality', 'status', 'pagination', 'previous', 'next']
+  .map(id => [id, element()]));
+ const records = Array.from({length: 65}, (_, i) => ({player: 'Player ' + i, market: 'Receiving'}));
+ await vm.runInNewContext(matchups.match(/<script>([\s\S]+)<\/script>/)[1], {
+  document: {createElement: element, getElementById: id => elements[id]},
+  fetch: async () => ({ok: true, json: async () => ({status: 'ok', matchups: records})}),
+ });
+ assert.equal(elements.list.children.length, 20);
+ for (let i = 0; i < 3; i++) elements.next.handlers.click();
+ assert.equal(elements.status.textContent, 'Showing 61–65 of 65 matching records');
+ assert.equal(elements.status.focused, true);
+ assert.equal(elements.next.disabled, true);
+ elements.search.value = 'Player 0';
+ elements.search.handlers.input();
+ assert.equal(elements.status.textContent, 'Showing 1–1 of 1 matching records');
+ assert.equal(elements.pagination.hidden, true);
+});

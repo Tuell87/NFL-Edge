@@ -53,6 +53,8 @@ Release `5969347` published 118 outcomes. The audit filtered 56 anytime touchdow
 
 Release `3e380f4` restored timestamps for all 118 outcomes and made 17 of 31 supported overs eligible for research comparison. All 14 remaining selections were from Packers–Rams, a game beyond the default ESPN scoreboard week. The scoreboard collector now uses ESPN calendar metadata to include pregame events from the next listed week with one additional request. The current scoreboard remains available if the next-week request fails.
 
+The expanded matchup feed uses 20 results per page with full-dataset filters. Deployment smoke checks cover the odds, matchups and market audit pages, including the published odds JSON contract.
+
 ## Project structure
 
 - `.github/workflows/pages.yml` — CI, ESPN/odds collection, data evaluation, safety gates, static Pages publishing and live checks.
