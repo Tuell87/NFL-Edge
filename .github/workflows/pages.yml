@@ -157,6 +157,8 @@ jobs:
           key: nfl-season-2024-archive-v1-verified
       - name: Merge complete 2024 and 2025 games with current history
         run: python3 scripts/merge_season_archive.py
+      - name: Build compact mobile historical player search
+        run: python3 scripts/build_history_search.py
       - name: Measure historical data completeness
         run: python3 scripts/build_history_quality.py
       - name: Evaluate historical over-probability estimates
