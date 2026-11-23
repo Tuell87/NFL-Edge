@@ -1,6 +1,10 @@
 #!/usr/bin/env python3
 """Join player history to upcoming scoreboard matchups without guessing injuries."""
 import json
+import importlib.util
+spec = importlib.util.spec_from_file_location("readiness_gate", "scripts/readiness_gate.py")
+readiness_gate = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(readiness_gate)
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -40,7 +44,7 @@ def build(games, players, now):
                             "injury_status": "unverified",
                             "matchup_adjustment": None,
                             "prediction_ready": False})
-    return matches
+    return readiness_gate.annotate(matches)
 
 def main():
     OUTPUT.parent.mkdir(parents=True, exist_ok=True)
