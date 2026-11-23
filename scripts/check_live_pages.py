@@ -14,9 +14,10 @@ from urllib.parse import urljoin
 from urllib.request import Request, urlopen
 
 DEFAULT_BASE = "https://tuell87.github.io/NFL-Edge/"
-PAGES = ("", "dashboard.html", "opponent-holdout.html", "opponent-evaluation.html", "opponent-rolling.html", "opponent-seasons.html",
+PAGES = ("", "odds.html", "matchups.html", "market-audit.html", "dashboard.html", "opponent-holdout.html", "opponent-evaluation.html", "opponent-rolling.html", "opponent-seasons.html",
          "feed-integrity.html", "roster-quality.html")
 DATA = {
+    "data/odds.json": ("markets", "status", "updated_at"),
     "data/opponent_holdout.json": ("metrics", "status"),
     "data/opponent_rolling.json": ("windows", "prediction_ready", "status"),
     "data/opponent_seasons.json": ("tests", "prediction_ready", "status"),
@@ -54,6 +55,8 @@ def check(base=DEFAULT_BASE, get=fetch, expected_sha=None):
             if not isinstance(data, dict) or any(k not in data for k in required):
                 errors.append(f"{path}: invalid JSON contract")
                 continue
+            if path.endswith("odds.json") and not isinstance(data["markets"], list):
+                errors.append(f"{path}: markets must be an array")
             if path.endswith("research_status.json") and expected_sha and data.get("release_sha") != expected_sha:
                 errors.append(f"{path}: deployed release SHA does not match this workflow run")
             if path.endswith("research_status.json") and data["prediction_ready"] is not False:

@@ -11,6 +11,8 @@ spec.loader.exec_module(mod)
 def response(path, *, unsafe=False):
     if path.endswith(".html") or path == "/NFL-Edge/":
         return b"<!doctype html><html><head></head><body>ok</body></html>", "text/html"
+    if path.endswith("odds.json"):
+        return json.dumps({"status": "no_markets", "markets": [], "updated_at": "2026-11-23T00:00:00Z"}).encode(), "application/json"
     if path.endswith("history_search.json"):
         return json.dumps({"status": "ok", "rows": [], "total_history_rows": 0, "searchable_rows": 0}).encode(), "application/json"
     if path.endswith("research_status.json"):
@@ -65,6 +67,18 @@ class LiveSmokeTests(unittest.TestCase):
             return response(urlparse(url).path)
         self.assertTrue(any("opponent-holdout.html" in error
                             for error in mod.check("https://example.com/NFL-Edge/", get)))
+
+    def test_missing_odds_page_and_malformed_odds_rows_block_verification(self):
+        def get(url):
+            path = urlparse(url).path
+            if path.endswith("/odds.html"):
+                raise OSError("404")
+            if path.endswith("/odds.json"):
+                return b'{"status":"ok","updated_at":null,"markets":{}}', "application/json"
+            return response(path)
+        errors = mod.check("https://example.com/NFL-Edge/", get)
+        self.assertTrue(any(error.startswith("odds.html:") for error in errors))
+        self.assertIn("data/odds.json: markets must be an array", errors)
 
     def test_invalid_json_is_reported(self):
         def get(url):
