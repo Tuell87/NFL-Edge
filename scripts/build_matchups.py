@@ -9,7 +9,14 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 OUTPUT = Path("data/matchups.json")
-def build(games, players, now):
+def build(games, players, now, rosters=None):
+    roster_index = {}
+    for team in (rosters or {}).get("teams", []):
+        if team.get("status") != "listed":
+            continue
+        name = team.get("team")
+        roster_index[name] = {str(a.get("player_id")) for a in team.get("athletes", [])
+                              if a.get("player_id")}
     upcoming = []
     for game in games:
         try:
@@ -40,6 +47,10 @@ def build(games, players, now):
                             "sample_quality_reasons": player.get("sample_quality_reasons", []),
                             "opponent": game["away"] if team == game["home"] else game["home"],
                             "game_start": game["start"],
+                            "roster_listing": ("listed" if player_id in roster_index[team]
+                                               else "not_found_in_snapshot") if team in roster_index
+                                              else "unavailable",
+                            "roster_listing_source": "ESPN team roster snapshot",
                             "availability": "unverified",
                             "injury_status": "unverified",
                             "matchup_adjustment": None,
@@ -51,14 +62,18 @@ def main():
     try:
         games = json.loads(Path("data/games.json").read_text())
         baseline = json.loads(Path("data/baseline.json").read_text())
+        try:
+            rosters = json.loads(Path("data/rosters.json").read_text())
+        except (OSError, ValueError, TypeError):
+            rosters = {}
         matches = build(games.get("games", []) if games.get("status") == "ok" else [],
                         baseline.get("players", []) if baseline.get("status") == "ok" else [],
-                        datetime.now(timezone.utc))
+                        datetime.now(timezone.utc), rosters)
         result = {"status": "ok" if matches else "no_upcoming_player_matchups",
                   "checked_at": datetime.now(timezone.utc).isoformat(), "matchups": matches}
     except (OSError, ValueError, TypeError):
         result = {"status": "unavailable", "matchups": []}
-    result["limitations"] = "Opponent pairing only; injury and active-roster status unverified. No opponent-strength adjustment or player prediction."
+    result["limitations"] = "Opponent pairing and ESPN roster listing cross-check only; roster listing is not active-game status. Injury and active-roster status unverified. No opponent-strength adjustment or player prediction."
     OUTPUT.write_text(json.dumps(result, indent=2))
     print("Upcoming player matchups:", len(result["matchups"]))
 if __name__ == "__main__":
