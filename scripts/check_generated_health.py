@@ -14,6 +14,7 @@ REQUIRED = {
     "holdout.json": ("metrics",),
     "opponent_evaluation.json": ("metrics",),
     "opponent_holdout.json": ("metrics",),
+    "opponent_rolling.json": ("windows", "prediction_ready"),
     "market_audit.json": ("rows",),
 }
 
