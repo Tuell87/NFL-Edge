@@ -56,7 +56,9 @@ def build(history, odds, matchups, now):
         updated = parse_time(item.get("bookmaker_updated"))
         if (not category or item.get("side") != "Over" or type(line) not in (int, float)
             or not math.isfinite(line) or not kickoff or kickoff <= now
-            or not updated or not timedelta(0) <= now - updated <= MAX_AGE):
+            or not updated or not timedelta(0) <= now - updated <= MAX_AGE
+            or type(item.get("odds")) not in (int, float)
+            or not math.isfinite(item["odds"]) or item["odds"] == 0):
             continue
         key = (norm(item.get("player")), item["market"], kickoff)
         candidates[key].append(item)
