@@ -8,7 +8,11 @@ import json
 import math
 from collections import defaultdict
 from pathlib import Path
-from scripts.evaluate_baseline import parse_yards
+import importlib.util
+spec = importlib.util.spec_from_file_location('evaluate_baseline', 'scripts/evaluate_baseline.py')
+module = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(module)
+parse_yards = module.parse_yards
 
 HISTORY = Path("data/history.json")
 OUTPUT = Path("data/probability_evaluation.json")
