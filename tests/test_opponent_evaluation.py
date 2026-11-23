@@ -54,6 +54,14 @@ class OpponentEvaluationTests(unittest.TestCase):
         self.assertEqual(mod.evaluate(earlier)["metrics"][0]["player_only_mae"],
                          mod.evaluate([r for r in changed if r["game_date"] != "2026-09-12"])["metrics"][0]["player_only_mae"])
 
+    def test_cluster_interval_is_reproducible_and_groups_events(self):
+        pairs = [(10, 8, str(i), "2026-09-01") for i in range(8)]
+        first = mod.event_cluster_interval(pairs, replicates=200, seed=123)
+        second = mod.event_cluster_interval(pairs, replicates=200, seed=123)
+        self.assertEqual(first, second)
+        self.assertEqual(first, (2.0, 2.0))
+        self.assertIsNone(mod.event_cluster_interval(pairs[:4]))
+
     def test_duplicate_stat_key_excluded(self):
         rows = dataset()
         rows.append(dict(rows[0]))
