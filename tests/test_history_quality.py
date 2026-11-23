@@ -26,6 +26,15 @@ class QualityTests(unittest.TestCase):
         self.assertEqual(r["median_unique_players_per_game"],11)
         self.assertEqual(r["max_unique_players_per_game"],12)
         self.assertEqual(r["sparse_games_under_ten_players"],1)
+    def test_collector_diagnostics_are_exposed(self):
+        r=mod.build({"status":"ok","rows":[{"event_id":"g1","player_id":"p1"}],
+                     "events_discovered":4,"games":1,"summaries_attempted":2,
+                     "summaries_without_usable_rows":1,"events_not_attempted":2,
+                     "row_limit_reached":True})
+        self.assertEqual(r["summaries_attempted"],2)
+        self.assertEqual(r["events_not_attempted"],2)
+        self.assertTrue(r["row_limit_reached"])
+        self.assertEqual(r["discovered_events_without_usable_boxscores"],3)
     def test_no_discovered_games_does_not_invent_rate(self):
         r=mod.build({"status":"no_history","rows":[],"events_discovered":0,"games":0})
         self.assertIsNone(r["boxscore_extraction_rate"])
