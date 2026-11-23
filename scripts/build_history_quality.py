@@ -42,6 +42,14 @@ def build(history):
         "history_checked_at": history.get("checked_at"),
         "events_discovered": discovered,
         "games_with_boxscores": extracted,
+        "scoreboard_days_attempted": history.get("scoreboard_days_attempted"),
+        "scoreboard_days_failed": history.get("scoreboard_days_failed"),
+        "events_discovered_before_cap": history.get("events_discovered_before_cap"),
+        "event_cap_reached": history.get("event_cap_reached"),
+        "summaries_attempted": history.get("summaries_attempted"),
+        "summaries_without_usable_rows": history.get("summaries_without_usable_rows"),
+        "events_not_attempted": history.get("events_not_attempted"),
+        "row_limit_reached": history.get("row_limit_reached"),
         "discovered_events_without_usable_boxscores": missing,
         "boxscore_extraction_rate": coverage,
         "unique_events_in_rows": len(ids),
@@ -56,7 +64,7 @@ def build(history):
         "earliest_game_date": dates[0] if dates else None,
         "latest_game_date": dates[-1] if dates else None,
         "categories": [{"name": k, "rows": v} for k,v in sorted(categories.items())],
-        "limitations": "The rate measures usable summaries among ESPN-discovered events, not total NFL schedule coverage. An incomplete scoreboard, missing player rows, skipped fetches, or incomplete game summaries can distort these counts. Games with fewer than ten distinct player IDs are flagged for review, not proven incomplete; this heuristic depends on the extracted categories. These are diagnostics, not predictive accuracy."
+        "limitations": "The rate measures usable summaries among ESPN-discovered events, not total NFL schedule coverage. Discovered-minus-extracted includes skipped, failed, and unattempted summaries; it is not strictly a count of missing box scores. Failed scoreboard dates, an incomplete scoreboard, missing player rows, skipped fetches, row caps, or incomplete game summaries can distort these counts. Games with fewer than ten distinct player IDs are flagged for review, not proven incomplete; this heuristic depends on the extracted categories. These are diagnostics, not predictive accuracy."
     }
 
 def main():
