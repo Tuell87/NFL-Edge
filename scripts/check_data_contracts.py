@@ -14,11 +14,12 @@ REQUIRED = {
     "evaluation.json": ("metrics",),
     "probability_evaluation.json": ("metrics",),
     "matchups.json": ("matchups",),
+    "rosters.json": ("teams",),
     "market_audit.json": ("rows",),
     "holdout.json": ("metrics",),
     "history_quality.json": ("categories",),
 }
-LIST_FIELDS = {"markets", "games", "players", "rows", "matchups", "metrics", "categories"}
+LIST_FIELDS = {"markets", "games", "players", "rows", "matchups", "metrics", "categories", "teams"}
 def validate(folder=DATA):
     errors = []
     for filename, fields in REQUIRED.items():
