@@ -38,7 +38,8 @@ def normalize(events, boards):
                         "side": outcome.get("name", ""),
                         "line": outcome.get("point"),
                         "odds": price,
-                        "bookmaker_updated": bookmaker.get("last_update"),
+                        # The event-odds endpoint reports freshness per market.
+                        "bookmaker_updated": market.get("last_update"),
                     })
     return results
 
