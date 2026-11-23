@@ -16,6 +16,8 @@ spec.loader.exec_module(prob)
 OUTPUT = Path("data/holdout.json")
 MIN_PRIOR = 5
 HOLDOUT_FRACTION = 0.25
+MIN_HOLDOUT_OBSERVATIONS = 30
+MIN_HOLDOUT_DATES = 4
 
 def valid_date(value):
     try:
@@ -68,7 +70,12 @@ def evaluate(rows):
     for (category, line), pairs in sorted(scores.items()):
         n = len(pairs)
         reference_p = reference.get((category, line))
+        evidence_ok = n >= MIN_HOLDOUT_OBSERVATIONS and (len(days)-cut) >= MIN_HOLDOUT_DATES
         metrics.append({"category":category,"line":line,"observations":n,
+                        "evidence_status":"preliminary" if evidence_ok else "insufficient_holdout_evidence",
+                        "minimum_observations_required":MIN_HOLDOUT_OBSERVATIONS,
+                        "minimum_holdout_dates_required":MIN_HOLDOUT_DATES,
+                        "prediction_ready":False,
                         "brier":round(sum((p-y)**2 for p,y in pairs)/n,4),
                         "reference_50_brier":round(sum((.5-y)**2 for p,y in pairs)/n,4),
                         "training_rate_reference":round(reference_p,4) if reference_p is not None else None,
@@ -79,6 +86,7 @@ def evaluate(rows):
             "holdout_start":holdout_start.isoformat(),
             "holdout_dates":len(days)-cut,
             "observations":sum(m["observations"] for m in metrics),
+            "evidence_status":"preliminary" if metrics and all(m["evidence_status"]=="preliminary" for m in metrics) else "insufficient_holdout_evidence",
             "metrics":metrics}
 
 def main():
@@ -90,7 +98,7 @@ def main():
     except (OSError,ValueError,TypeError):
         result={"status":"unavailable","holdout_start":None,"observations":0,"metrics":[]}
     result["method"]="Chronological last-quarter-of-observed-game-dates holdout; fixed Beta(2,2) prior and five prior games; includes a training-period pooled-rate benchmark with the same smoothing; no tuning on holdout"
-    result["limitations"]="Held-out dates are from a bounded historical sample, not a truly untouched future prospective trial. No injury, roster, opponent or sportsbook-line adjustments. Illustrative yardage thresholds; no verified betting edge."
+    result["limitations"]="Held-out dates are from a bounded historical sample, not a truly untouched future prospective trial. No injury, roster, opponent or sportsbook-line adjustments. Illustrative yardage thresholds; at least 30 observations across at least four held-out dates per metric are required even for preliminary evidence. Observations may be correlated across players and lines. No verified betting edge."
     OUTPUT.write_text(json.dumps(result,indent=2))
     print("Out-of-time holdout:",result["status"],result["observations"])
 
