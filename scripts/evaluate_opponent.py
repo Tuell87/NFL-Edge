@@ -44,6 +44,7 @@ def prepare(rows):
             opponents[(event, a)] = b
             opponents[(event, b)] = a
     unique = {}
+    ambiguous = set()
     for row in rows:
         if not isinstance(row, dict):
             continue
@@ -61,10 +62,10 @@ def prepare(rows):
         key = (event, player, category)
         # Ambiguous duplicate observations are excluded, not overwritten.
         if key in unique:
-            unique[key] = None
+            ambiguous.add(key)
         else:
             unique[key] = (date, event, player, category, team, opponent, yards)
-    return [value for value in unique.values() if value is not None]
+    return [value for key, value in unique.items() if key not in ambiguous]
 
 
 def evaluate(rows):
