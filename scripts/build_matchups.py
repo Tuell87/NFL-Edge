@@ -5,13 +5,18 @@ import importlib.util
 spec = importlib.util.spec_from_file_location("readiness_gate", "scripts/readiness_gate.py")
 readiness_gate = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(readiness_gate)
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 from pathlib import Path
 
 OUTPUT = Path("data/matchups.json")
 def build(games, players, now, rosters=None):
     roster_index = {}
-    for team in (rosters or {}).get("teams", []):
+    try:
+        checked = datetime.fromisoformat(str((rosters or {}).get("checked_at") or "").replace("Z", "+00:00"))
+        fresh = checked.tzinfo is not None and timedelta(0) <= now - checked <= timedelta(hours=24)
+    except (ValueError, TypeError):
+        fresh = False
+    for team in ((rosters or {}).get("teams", []) if fresh else []):
         if team.get("status") != "listed":
             continue
         name = team.get("team")
