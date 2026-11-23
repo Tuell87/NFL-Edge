@@ -96,6 +96,11 @@ def build(history, odds, matchups, now):
                        "opponent": matchup["opponent"], "prior_games": len(previous),
                        "experimental_over_probability": round(estimate, 4),
                        "injury_status": "unverified", "active_roster": "unverified",
+                       "sample_quality": matchup.get("sample_quality", "unavailable"),
+                       "readiness_status": "research_only",
+                       "readiness_blockers": list(matchup.get("readiness_blockers") or [
+                           "independent_availability_source_not_integrated",
+                           "injury_availability_not_verified", "active_roster_not_verified"]),
                        "prediction_ready": False, "recommended": False})
     output.sort(key=lambda r: (r["game_start"], r["player"], r["market"]))
     return {"status": "ok" if output else "no_eligible_market_matches", "rows": output}

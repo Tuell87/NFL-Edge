@@ -23,6 +23,14 @@ class AuditTests(unittest.TestCase):
         self.assertFalse(result["rows"][0]["recommended"])
         self.assertFalse(result["rows"][0]["prediction_ready"])
         self.assertEqual(result["rows"][0]["active_roster"],"unverified")
+        self.assertEqual(result["rows"][0]["readiness_status"],"research_only")
+        self.assertIn("independent_availability_source_not_integrated", result["rows"][0]["readiness_blockers"])
+    def test_matchup_blockers_are_preserved(self):
+        h,o,m=fixtures()
+        m[0]["readiness_blockers"]=["historical_sample_not_sufficient","injury_availability_not_verified"]
+        result=mod.build(h,o,m,NOW)
+        self.assertEqual(result["rows"][0]["readiness_blockers"],m[0]["readiness_blockers"])
+        self.assertFalse(result["rows"][0]["prediction_ready"])
     def test_stale_feed_is_blocked(self):
         h,o,m=fixtures()
         o["updated_at"]="2026-11-20T18:30:00Z"
