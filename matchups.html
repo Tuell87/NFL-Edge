@@ -1,4 +1,4 @@
-<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#0b1220"><title>NFL Edge | Player Matchups</title><style>
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#0b1220"><title>NFL Edge | Player Matchups</title><style>
 :root{color-scheme:dark;font-family:system-ui,-apple-system,sans-serif;background:#0b1220;color:#eaf4ff}*{box-sizing:border-box}body{margin:0}main{max-width:900px;margin:auto;padding:16px 14px 65px}a{color:#55e5b3}h1{font-size:25px;margin:12px 0 6px}.muted{color:#b5c8db}.small{font-size:13px}.toolbar{display:grid;grid-template-columns:2fr 1fr 1fr;gap:8px;margin:14px 0}input,select{width:100%;min-width:0;background:#17283e;border:1px solid #48627b;color:#fff;border-radius:9px;padding:11px;font-size:15px}.result{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:12px 0;border-bottom:1px solid #30475f}.result strong{display:block;font-size:14px}.result span{display:block;font-size:12px;margin-top:3px}.result button{background:#1c594d;color:#fff;border:1px solid #438f79;min-height:44px;padding:8px 11px;border-radius:8px;white-space:nowrap}.detail{padding:11px;background:#1b3046;border-radius:9px;margin:7px 0 10px;font-size:13px;line-height:1.6}.detail p{margin:5px 0}.panel{background:#15263b;border:1px solid #38516a;border-radius:12px;padding:13px;margin:13px 0}.hint{color:#ffd399}@media(max-width:520px){.toolbar{grid-template-columns:1fr 1fr}.toolbar input{grid-column:1/-1}}
 
 .pagination{display:flex;gap:8px;margin-top:12px}
@@ -6,7 +6,16 @@
 .pagination button{min-height:44px;padding:8px 12px;background:#17283e;color:inherit;border:1px solid #48627b;border-radius:8px}
 .pagination button:disabled{opacity:.55}
 :focus-visible{outline:2px solid #55e5b3;outline-offset:2px}
-</style></head><body><main><nav><a href="./#players">← Players</a> · <a href="./#games">Games</a> · <a href="./history.html">History</a></nav><h1>Upcoming Player Matchups</h1><p class="muted small">Compact schedule-to-player research. Roster listing is not proof of game-day availability. <strong>Injury and active status are unverified; no betting picks.</strong></p>
+</style><link rel="stylesheet" href="./mobile-navigation.css">
+</head><body>
+<nav class="mobile-sections" aria-label="Main site sections">
+  <a href="./#games">Games</a>
+  <a href="./#players" aria-current="true">Players</a>
+  <a href="./#odds">Odds &amp; Tools</a>
+  <a href="./#research">Research</a>
+  <a href="./#project">Project</a>
+</nav>
+<main><nav><a href="./#players">← Players</a> · <a href="./#games">Games</a> · <a href="./history.html">History</a></nav><h1>Upcoming Player Matchups</h1><p class="muted small">Compact schedule-to-player research. Roster listing is not proof of game-day availability. <strong>Injury and active status are unverified; no betting picks.</strong></p>
 <div class="toolbar"><input id="search" type="search" placeholder="Player or team…" aria-label="Search players or teams"><select id="market" aria-label="Filter stat market"><option value="">All markets</option></select><select id="quality" aria-label="Filter historical sample"><option value="">All samples</option><option value="sufficient_recent_sample">Recent sample</option><option value="limited_sample">Limited sample</option></select></div>
 <p id="status" role="status" class="muted small">Loading…</p><div id="list"></div>
 <div id="pagination" class="pagination" role="group" aria-label="Matchup results pages" hidden>

@@ -1,0 +1,49 @@
+.mobile-sections {
+  display: none;
+}
+
+@media (max-width: 600px) {
+  body {
+    padding-bottom: calc(60px + env(safe-area-inset-bottom, 0px));
+  }
+
+  .mobile-sections,
+  .tabs.mobile-tabs {
+    position: fixed;
+    inset: auto 0 0;
+    z-index: 10;
+    display: grid;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    gap: 4px;
+    margin: 0;
+    padding: 4px max(6px, env(safe-area-inset-right, 0px))
+      calc(4px + env(safe-area-inset-bottom, 0px))
+      max(6px, env(safe-area-inset-left, 0px));
+    border-top: 1px solid #38516a;
+    background: #0b1220;
+    overflow: visible;
+  }
+
+  .mobile-sections a,
+  .mobile-tabs .tab {
+    display: grid;
+    place-items: center;
+    min-height: 44px;
+    padding: 4px;
+    border: 1px solid transparent;
+    border-radius: 7px;
+    background: transparent;
+    color: #eaf4ff;
+    font: inherit;
+    font-size: clamp(11px, 3vw, 14px);
+    text-align: center;
+    text-decoration: none;
+    white-space: normal;
+  }
+
+  .mobile-sections a[aria-current],
+  .mobile-tabs .tab[aria-selected="true"] {
+    background: #1c594d;
+    color: #fff;
+  }
+}
