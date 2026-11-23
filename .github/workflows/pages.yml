@@ -65,6 +65,8 @@ jobs:
         run: python3 scripts/evaluate_baseline.py
       - name: Pair historical players to upcoming NFL opponents
         run: python3 scripts/build_matchups.py
+      - name: Audit experimental probabilities against current FanDuel lines
+        run: python3 scripts/build_market_audit.py
       - name: Publish only approved static files
         run: |
           mkdir -p _site
@@ -80,6 +82,7 @@ jobs:
           cp evaluation.html _site/evaluation.html
           cp probabilities.html _site/probabilities.html
           cp matchups.html _site/matchups.html
+          cp market-audit.html _site/market-audit.html
           mkdir -p _site/data
           cp data/odds.json _site/data/odds.json
           cp data/games.json _site/data/games.json
@@ -89,6 +92,7 @@ jobs:
           cp data/evaluation.json _site/data/evaluation.json
           cp data/probability_evaluation.json _site/data/probability_evaluation.json
           cp data/matchups.json _site/data/matchups.json
+          cp data/market_audit.json _site/data/market_audit.json
           cp 404.html _site/404.html
           touch _site/.nojekyll
       - uses: actions/upload-pages-artifact@v4
