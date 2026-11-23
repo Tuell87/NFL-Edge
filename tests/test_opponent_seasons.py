@@ -58,6 +58,20 @@ class SeasonValidationTests(unittest.TestCase):
         self.assertEqual(a["metrics"][0]["paired_observations"], b["metrics"][0]["paired_observations"])
         self.assertFalse(a["metrics"][0]["prediction_ready"])
 
+    def test_test_season_earlier_games_do_not_train_frozen_model(self):
+        rows = dataset()
+        modified = [dict(r, stats={"YDS": "900"}) if r["game_date"].startswith("2026")
+                    and r["game_date"] != "2026-09-12" else r for r in rows]
+        # Score only final test date: all other test-season outcomes must be
+        # excluded from the frozen pre-season training inputs.
+        start = date(2026, 9, 12)
+        end = date(2026, 9, 13)
+        a = mod.opponent.evaluate(rows, test_start=start, test_end=end,
+                                  train_end=date(2026, 7, 1))
+        b = mod.opponent.evaluate(modified, test_start=start, test_end=end,
+                                  train_end=date(2026, 7, 1))
+        self.assertEqual(a["metrics"], b["metrics"])
+
     def test_partial_season_is_explicitly_insufficient(self):
         result = mod.evaluate(dataset(days=3))
         self.assertEqual(result["status"], "insufficient_data")
