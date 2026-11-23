@@ -36,6 +36,7 @@ class RosterQualityTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as folder:
             path = Path(folder)
             payloads = {
+                "feed_integrity.json": {"status": "ok", "warnings": [], "errors": []},
                 "rosters.json": {"status": "ok", "teams": [], "teams_with_rosters": 0},
                 "roster_quality.json": {"status": "ok", "teams_requested": 0,
                                         "teams_with_listings": 0, "prediction_ready": False},
