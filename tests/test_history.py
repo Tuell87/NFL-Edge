@@ -21,7 +21,7 @@ class HistoryTests(unittest.TestCase):
             requested.append(day)
             return {"events": []}
         mod.recent_completed_events(datetime(2026, 11, 22, tzinfo=timezone.utc), fetch)
-        self.assertEqual(len(requested), 18)
+        self.assertEqual(len(requested), 54)
         self.assertIn("20261112", requested)  # Thursday before prior Sunday
         self.assertIn("20261115", requested)  # Previous Sunday
         self.assertIn("20261116", requested)  # Monday after Sunday

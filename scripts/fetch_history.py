@@ -15,9 +15,9 @@ players = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(players)
 
 OUTPUT = Path("data/history.json")
-WEEKS_BACK = 6
-MAX_GAMES = 36
-MAX_ROWS = 3000
+WEEKS_BACK = 18
+MAX_GAMES = 280
+MAX_ROWS = 25000
 # NFL regular-season games commonly occur on Thursday, Sunday and Monday.
 GAME_WEEKDAYS = (3, 6, 0)
 
@@ -47,7 +47,7 @@ def recent_completed_events(today, fetch):
                 event_id = str(event.get("id", ""))
                 if event_id:
                     found[event_id] = event
-    return sorted(found.values(), key=lambda event: event.get("date", ""), reverse=True)[:MAX_GAMES]
+    return sorted(found.values(), key=lambda event: event.get("date", ""))[:MAX_GAMES]
 
 
 def assemble(events, fetch):
@@ -78,8 +78,9 @@ def main():
             "checked_at": now.isoformat(),
             "source": "ESPN public NFL completed game box scores",
             "games": games,
+            "events_discovered": len(events),
             "rows": rows,
-            "limitations": "Bounded Thursday/Sunday/Monday sampling from six recent completed NFL weeks; excludes unusual game days, not full-season coverage or calibrated predictions."
+            "limitations": "Bounded Thursday/Sunday/Monday sampling from up to eighteen recent NFL weeks; may miss unusual game days, incomplete summaries, and early-season games. Not guaranteed full-season coverage or calibrated predictions."
         }
     except Exception:
         result = {"status": "fetch_failed", "checked_at": now.isoformat(), "source": "ESPN public NFL completed game box scores", "games": 0, "rows": []}
