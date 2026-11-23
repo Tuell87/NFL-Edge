@@ -16,6 +16,7 @@ REQUIRED = {
     "opponent_holdout.json": ("metrics",),
     "opponent_rolling.json": ("windows", "prediction_ready"),
     "opponent_seasons.json": ("tests", "prediction_ready"),
+    "research_status.json": ("readiness_blockers", "prediction_ready"),
     "market_audit.json": ("rows",),
 }
 
@@ -44,7 +45,7 @@ def validate(folder=Path("data")):
         failures.append("feed_integrity.json: cross-feed integrity errors")
     if isinstance(integrity.get("warnings"), list):
         warnings.extend("feed integrity: " + str(w) for w in integrity["warnings"])
-    for filename in ("opponent_rolling.json", "opponent_seasons.json"):
+    for filename in ("opponent_rolling.json", "opponent_seasons.json", "research_status.json"):
         research = documents.get(filename, {})
         if research.get("prediction_ready") is not False:
             failures.append(f"{filename}: research must remain prediction_ready=false")
