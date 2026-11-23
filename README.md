@@ -5,6 +5,7 @@ Mobile-first, **research-only** NFL player-prop data and model evaluation site.
 - **Live site:** https://tuell87.github.io/NFL-Edge/
 - **Project command center:** https://tuell87.github.io/NFL-Edge/dashboard.html
 - **Engineering tracker:** [NFL-EDGE-PROJECT-TRACKER.md](NFL-EDGE-PROJECT-TRACKER.md)
+- **Codebase audit and review decisions:** [PROJECT-AUDIT-2026-11-23.md](PROJECT-AUDIT-2026-11-23.md)
 - **CI/deployments:** https://github.com/Tuell87/NFL-Edge/actions
 
 ## What it does
