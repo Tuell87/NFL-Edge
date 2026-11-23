@@ -14,7 +14,7 @@ from urllib.parse import urljoin
 from urllib.request import Request, urlopen
 
 DEFAULT_BASE = "https://tuell87.github.io/NFL-Edge/"
-PAGES = ("", "opponent-holdout.html", "opponent-evaluation.html", "opponent-rolling.html", "opponent-seasons.html",
+PAGES = ("", "dashboard.html", "opponent-holdout.html", "opponent-evaluation.html", "opponent-rolling.html", "opponent-seasons.html",
          "feed-integrity.html", "roster-quality.html")
 DATA = {
     "data/opponent_holdout.json": ("metrics", "status"),
