@@ -10,6 +10,7 @@ REQUIRED = {
     "feed_integrity.json": ("warnings", "errors"),
     "matchups.json": ("matchups",),
     "history.json": ("rows",),
+    "history_search.json": ("rows", "searchable_rows", "total_history_rows"),
     "history_quality.json": ("categories",),
     "holdout.json": ("metrics",),
     "opponent_evaluation.json": ("metrics",),

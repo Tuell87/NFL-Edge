@@ -21,6 +21,7 @@ DATA = {
     "data/opponent_rolling.json": ("windows", "prediction_ready", "status"),
     "data/opponent_seasons.json": ("tests", "prediction_ready", "status"),
     "data/research_status.json": ("readiness_blockers", "prediction_ready", "status"),
+    "data/history_search.json": ("rows", "total_history_rows", "searchable_rows", "status"),
     "data/opponent_evaluation.json": ("metrics", "status"),
     "data/feed_integrity.json": ("warnings", "errors", "status"),
     "data/roster_quality.json": ("teams_requested", "prediction_ready"),

@@ -10,6 +10,7 @@ REQUIRED = {
     "games.json": ("games",),
     "players.json": ("players",),
     "history.json": ("rows",),
+    "history_search.json": ("rows", "searchable_rows", "total_history_rows"),
     "baseline.json": ("players",),
     "evaluation.json": ("metrics",),
     "probability_evaluation.json": ("metrics",),

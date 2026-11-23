@@ -42,6 +42,7 @@ class RosterQualityTests(unittest.TestCase):
                                         "teams_with_listings": 0, "prediction_ready": False},
                 "matchups.json": {"status": "ok", "matchups": [{"prediction_ready": False}]},
                 "history.json": {"status": "ok", "rows": []},
+                "history_search.json": {"status": "ok", "rows": [], "total_history_rows": 0, "searchable_rows": 0},
                 "history_quality.json": {"status": "ok", "categories": []},
                 "holdout.json": {"status": "insufficient_data", "metrics": []},
                 "opponent_evaluation.json": {"status": "insufficient_data", "metrics": []},

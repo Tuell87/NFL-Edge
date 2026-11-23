@@ -11,6 +11,8 @@ spec.loader.exec_module(mod)
 def response(path, *, unsafe=False):
     if path.endswith(".html") or path == "/NFL-Edge/":
         return b"<!doctype html><html><head></head><body>ok</body></html>", "text/html"
+    if path.endswith("history_search.json"):
+        return json.dumps({"status": "ok", "rows": [], "total_history_rows": 0, "searchable_rows": 0}).encode(), "application/json"
     if path.endswith("research_status.json"):
         return json.dumps({"status": "research_only", "readiness_blockers": [], "prediction_ready": False}).encode(), "application/json"
     if path.endswith("opponent_seasons.json"):
