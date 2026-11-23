@@ -23,6 +23,15 @@ class HoldoutTests(unittest.TestCase):
         metric=next(m for m in result["metrics"] if m["line"]==24.5)
         self.assertEqual(metric["observations"],4)
         self.assertEqual(metric["observed_over_rate"],0.5)
+    def test_training_reference_excludes_holdout_outcomes(self):
+        original=[row(i,f"2026-09-{i+1:02d}",20) for i in range(12)]
+        changed=[row(i,f"2026-09-{i+1:02d}",20 if i<9 else 200) for i in range(12)]
+        a=mod.evaluate(original)["metrics"]
+        b=mod.evaluate(changed)["metrics"]
+        m1=next(m for m in a if m["line"]==24.5)
+        m2=next(m for m in b if m["line"]==24.5)
+        self.assertEqual(m1["training_rate_reference"],m2["training_rate_reference"])
+        self.assertNotEqual(m1["training_rate_brier"],m2["training_rate_brier"])
     def test_missing_dates_do_not_crash(self):
         self.assertEqual(mod.evaluate([row("a","not-a-date",20)])["status"],"insufficient_data")
 if __name__=="__main__":
