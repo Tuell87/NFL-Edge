@@ -51,6 +51,14 @@ class HoldoutTests(unittest.TestCase):
         self.assertEqual([b["observations"] for b in result],[1,1,0,0,2])
         self.assertIsNone(result[2]["observed_rate"])
         self.assertTrue(all(b["evidence_status"]=="insufficient_evidence" for b in result))
+    def test_market_bins_do_not_mix_categories(self):
+        scores={("rushing",24.5):[(0.3,1)],("receiving",24.5):[(0.3,0),(0.7,1)]}
+        rush=mod.calibration_bins(scores,"rushing")
+        recv=mod.calibration_bins(scores,"receiving")
+        self.assertEqual(sum(b["observations"] for b in rush),1)
+        self.assertEqual(sum(b["observations"] for b in recv),2)
+        self.assertEqual(rush[1]["observed_rate"],1)
+        self.assertEqual(recv[1]["observed_rate"],0)
     def test_calibration_uses_only_holdout_outcomes(self):
         rows=[row(i,f"2026-09-{i+1:02d}",20 if i<9 else 100) for i in range(12)]
         result=mod.evaluate(rows)
