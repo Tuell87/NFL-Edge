@@ -118,8 +118,35 @@ function renderGames() {
  }
 }
 for(const btn of document.querySelectorAll('[data-filter]'))btn.addEventListener('click',()=>{gameFilter=btn.dataset.filter;for(const b of document.querySelectorAll('[data-filter]'))b.setAttribute('aria-pressed',String(b===btn));renderGames();});
-async function loadGames(){const status=$('games-status'),list=$('games');status.textContent='Checking published scoreboard…';list.replaceChildren();try{const res=await fetch('./data/games.json',{cache:'no-store'});if(!res.ok)throw Error('unavailable');const data=await res.json();$('games-time').textContent=data.checked_at?'Feed checked: '+fmtDate(data.checked_at):'';const games=Array.isArray(data.games)?data.games:[];if(data.status!=='ok'||!games.length){status.textContent=data.status==='no_games'?'No games in the current ESPN scoreboard window.':'Game data unavailable. Try again later.';return;}const coverage = {next_week_included: ' · Includes next week', next_week_unavailable: ' · Next week unavailable'};
-status.textContent = games.length + ' games in scoreboard snapshot' + (coverage[data.schedule_coverage] || '');currentGames=games;renderGames();}catch(e){status.textContent='Game data unavailable. Try again later.';}}
+async function loadGames() {
+ const refresh = $('refresh');
+ if (refresh.disabled) return;
+ refresh.disabled = true;
+ const status = $('games-status');
+ status.textContent = 'Checking published scoreboard…';
+ currentGames = [];
+ $('games-time').textContent = '';
+ $('games').replaceChildren();
+ try {
+  const res = await fetch('./data/games.json', {cache:'no-store'});
+  if (!res.ok) throw new Error('Scoreboard unavailable');
+  const data = await res.json();
+  $('games-time').textContent = data.checked_at ? 'Feed checked: ' + fmtDate(data.checked_at) : '';
+  const games = Array.isArray(data.games) ? data.games : [];
+  if (data.status !== 'ok' || !games.length) {
+   status.textContent = data.status === 'no_games' ? 'No games in the current ESPN scoreboard window.' : 'Game data unavailable. Try again later.';
+   return;
+  }
+  const coverage = {next_week_included:' · Includes next week', next_week_unavailable:' · Next week unavailable'};
+  status.textContent = games.length + ' games in scoreboard snapshot' + (coverage[data.schedule_coverage] || '');
+  currentGames = games;
+  renderGames();
+ } catch {
+  status.textContent = 'Game data unavailable. Try again later.';
+ } finally {
+  refresh.disabled = false;
+ }
+}
 async function loadOdds(){try{const res=await fetch('./data/odds.json',{cache:'no-store'});if(!res.ok)throw Error('unavailable');const data=await res.json();setRewardOdds(data);const count=Array.isArray(data.markets)?data.markets.length:0;$('odds-summary').textContent=data.status==='ok'?count+' published selections · checked '+fmtDate(data.updated_at):'Odds feed '+(data.status==='not_configured'?'not configured':'temporarily unavailable');}catch(e){$('odds-summary').textContent='Odds feed unavailable';setRewardOdds({});}}
 async function loadResearch(){try{const r=await fetch('./data/research_status.json',{cache:'no-store'});if(!r.ok)throw Error('unavailable');const d=await r.json();$('research-status').textContent='Research only · '+(d.history?.games??0)+' historical games · '+(d.seasons_observed?.length??0)+' NFL seasons observed';$('research-detail').textContent='2024 archive: '+(d.history?.archive_2024_status||'unavailable')+' · '+(d.history?.archive_2024_games_added??0)+' games added · 2025 archive: '+(d.history?.archive_2025_status||'unavailable')+' · '+(d.history?.archive_2025_games_added??0)+' games added · '+(d.rosters?.teams_with_listings??0)+' teams with roster snapshots · '+(d.readiness_blockers?.length??0)+' readiness blockers';}catch(e){$('research-status').textContent='Research status unavailable; no predictions verified.';}}
 
