@@ -59,6 +59,39 @@ jobs:
       - name: Collect historical NFL player results
         if: steps.history_cache.outputs.cache-hit != 'true'
         run: python3 scripts/fetch_history.py
+      - name: Restore cached 2025 NFL season archive
+        id: archive_cache
+        uses: actions/cache/restore@v4
+        with:
+          path: data/archive_2025.json
+          key: nfl-season-2025-archive-v1
+      - name: Collect 2025 season archive when not cached
+        if: steps.archive_cache.outputs.cache-hit != 'true'
+        run: python3 scripts/fetch_season_archive.py
+      - name: Check whether season archive is cacheable
+        id: archive_quality
+        if: steps.archive_cache.outputs.cache-hit != 'true'
+        run: |
+          python3 - <<'PY'
+          import json
+          import os
+          from pathlib import Path
+          try:
+              data = json.loads(Path("data/archive_2025.json").read_text())
+              valid = data.get("status") == "ok" and data.get("games", 0) >= 100
+          except (OSError, ValueError, TypeError):
+              valid = False
+          with open(os.environ["GITHUB_OUTPUT"], "a") as out:
+              out.write(f"cacheable={str(valid).lower()}\n")
+          PY
+      - name: Cache usable 2025 archive for future deployments
+        if: steps.archive_cache.outputs.cache-hit != 'true' && steps.archive_quality.outputs.cacheable == 'true'
+        uses: actions/cache/save@v4
+        with:
+          path: data/archive_2025.json
+          key: nfl-season-2025-archive-v1
+      - name: Merge complete 2025 games with current history
+        run: python3 scripts/merge_season_archive.py
       - name: Measure historical data completeness
         run: python3 scripts/build_history_quality.py
       - name: Evaluate historical over-probability estimates
