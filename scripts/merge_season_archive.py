@@ -16,7 +16,7 @@ spec.loader.exec_module(archive_check)
 HISTORY = Path("data/history.json")
 ARCHIVE = Path("data/archive_2025.json")
 ARCHIVE_2024 = Path("data/archive_2024.json")
-MAX_COMBINED_ROWS = 50000
+MAX_COMBINED_ROWS = 80000
 
 
 def group_games(rows):
