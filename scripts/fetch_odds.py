@@ -43,6 +43,18 @@ def normalize(events, boards):
     return results
 
 
+def upcoming_events(events, now):
+    eligible = []
+    for event in events:
+        try:
+            start = datetime.fromisoformat(str(event.get("commence_time", "")).replace("Z", "+00:00"))
+        except (TypeError, ValueError):
+            continue
+        if start.tzinfo is not None and start > now and event.get("id"):
+            eligible.append(event)
+    return sorted(eligible, key=lambda event: event["commence_time"])[:MAX_EVENTS]
+
+
 def main():
     OUTPUT.parent.mkdir(parents=True, exist_ok=True)
     now = datetime.now(timezone.utc).isoformat()
@@ -52,7 +64,7 @@ def main():
         print("Odds feed not configured: publish clear status, not fake prices")
         return
     try:
-        events = request("/events", key)[:MAX_EVENTS]
+        events = upcoming_events(request("/events", key), datetime.now(timezone.utc))
         boards = [request(f"/events/{event['id']}/odds", key, regions="us", bookmakers="fanduel", markets=MARKETS, oddsFormat="american") for event in events]
         markets = normalize(events, boards)
         result = {"status": "ok" if markets else "no_markets", "updated_at": now, "source": "The Odds API", "events_checked": len(events), "markets": markets}
