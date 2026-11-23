@@ -133,3 +133,5 @@ jobs:
           path: _site
       - id: deployment
         uses: actions/deploy-pages@v4
+      - name: Verify actual published Pages responses
+        run: python3 scripts/check_live_pages.py "${{ steps.deployment.outputs.page_url }}"
