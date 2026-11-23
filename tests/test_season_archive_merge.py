@@ -47,6 +47,18 @@ class ArchiveMergeTests(unittest.TestCase):
         self.assertEqual(result["archive_2025_status"], "unusable_or_invalid")
         self.assertEqual(result["rows"], current["rows"])
 
+    def test_2024_and_2025_archives_can_merge_without_duplicates(self):
+        current = {"status": "ok", "rows": [row("2026game", "2026-11-01", "p1")]}
+        archive25 = {"status": "ok", "season": 2025, "games": 1,
+                     "rows": [row("2025game", "2025-11-01", "p2")]}
+        archive24 = {"status": "ok", "season": 2024, "games": 1,
+                     "rows": [row("2024game", "2024-11-01", "p3")]}
+        result = merge.merge(merge.merge(current, archive25), archive24, season=2024)
+        self.assertEqual(result["games"], 3)
+        self.assertEqual(result["archive_2024_games_added"], 1)
+        self.assertEqual(result["archive_2025_games_added"], 1)
+        self.assertEqual(len({r["event_id"] for r in result["rows"]}), 3)
+
     def test_current_game_rows_preserved(self):
         current = {"status": "ok", "rows": [row("current", "2026-11-01", "p1")]}
         result = merge.merge(current, {"status": "ok", "season": 2025, "games": 0, "rows": []})
