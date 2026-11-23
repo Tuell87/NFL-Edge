@@ -107,6 +107,12 @@ function selection(row, showMarket = false) {
   const params = new URLSearchParams({
     pick: [label(row.market), name].filter(Boolean).join(' · '),
     odds: String(row.odds),
+    event: row.event,
+    kickoff: row.commence_time,
+    market: row.market,
+    player: row.player || '',
+    side: row.side || '',
+    line: row.line ?? '',
   });
   workbench.href = './workbench.html?' + params;
   workbench.textContent = 'Use in Workbench';

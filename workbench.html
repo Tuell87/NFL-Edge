@@ -9,6 +9,16 @@ select{min-height:44px} .card [hidden]{display:none}
 #player-suggestions{display:grid;gap:4px;max-height:220px;overflow:auto;margin:8px 0}
 #player-suggestions button{min-height:44px;text-align:left;background:#22364c}
 #player-suggestions button[aria-pressed="true"]{background:#186852}
+.slip-manual{margin-top:12px}
+.slip-manual summary,#advanced-calculator>summary{cursor:pointer;padding:10px 0}
+#slip-search,#slip-stake,#slip-quote,#slip-market,.slip-manual input,#slip-combined-price{box-sizing:border-box}
+#slip-legs{list-style:none;padding:0}
+#slip-legs li{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:4px 10px;padding:10px 0;border-bottom:1px solid #34485e}
+#slip-legs span{grid-column:1}
+#slip-legs button{grid-column:2;grid-row:1/3;align-self:center;min-height:44px;background:#34485e}
+.slip-totals{display:grid;gap:8px}
+.slip-totals div{display:flex;justify-content:space-between;gap:8px}
+.slip-totals dd{margin:0;font-weight:700;color:#56e5b4}
 </style><link rel="stylesheet" href="./mobile-navigation.css">
 </head><body>
 <nav class="mobile-sections" aria-label="Main site sections">
@@ -19,7 +29,51 @@ select{min-height:44px} .card [hidden]{display:none}
   <a href="./#project">Project</a>
   <a href="./#rewards">Rewards</a>
 </nav>
-<main><a href="./">← NFL-Edge home</a><h1>Odds Workbench</h1><p class="muted">Enter a real sportsbook line and your <strong>own independently estimated</strong> probability. This calculator does not predict games or fetch live odds.</p>
+<main><a href="./">← NFL-Edge home</a><h1>Odds Workbench</h1>
+<section class="card" aria-labelledby="slip-heading">
+  <h2 id="slip-heading">Payout builder</h2>
+  <label for="slip-search">Find a player or prop</label>
+  <input id="slip-search" type="search" placeholder="Try Ja’Marr Chase" autocomplete="off">
+  <label for="slip-market">Market</label>
+  <select id="slip-market"><option value="">All published player props</option></select>
+  <label for="slip-quote">Published selection</label>
+  <select id="slip-quote"><option value="">Choose a selection</option></select>
+  <p class="muted small" id="slip-feed" role="status">Loading FanDuel snapshot…</p>
+  <button type="button" id="slip-add" disabled>Add selection</button>
+  <details class="slip-manual">
+    <summary>Enter a line manually</summary>
+    <label for="slip-manual-name">Player and prop</label>
+    <input id="slip-manual-name" maxlength="160" placeholder="Ja’Marr Chase anytime touchdown">
+    <label for="slip-manual-price">American odds</label>
+    <input id="slip-manual-price" type="number" step="1" inputmode="numeric" placeholder="+150">
+    <p><button type="button" id="slip-add-manual">Add manual selection</button></p>
+  </details>
+  <p id="slip-error" class="warn small" role="status"></p>
+  <h3>Your selections</h3>
+  <ul id="slip-legs"></ul>
+  <p id="slip-empty" class="muted">Add a selection to see its payout.</p>
+  <div id="slip-settings" hidden>
+    <label for="slip-mode">Bet as</label>
+    <select id="slip-mode">
+      <option value="combined">One combined bet</option>
+      <option value="separate">Separate bets</option>
+    </select>
+    <label for="slip-stake" id="slip-stake-label">Stake for this bet ($)</label>
+    <input id="slip-stake" type="number" min="0.01" max="1000000" step="0.01" inputmode="decimal" value="10">
+    <div id="slip-combined" hidden>
+      <label for="slip-combined-price">Combined American odds from FanDuel</label>
+      <input id="slip-combined-price" type="number" step="1" inputmode="numeric" placeholder="+650">
+      <p id="slip-price-help" class="muted small"></p>
+    </div>
+    <dl class="slip-totals">
+      <div><dt>Total stake</dt><dd id="slip-risk">—</dd></div>
+      <div><dt>Total payout if all win</dt><dd id="slip-return">—</dd></div>
+      <div><dt>Profit if all win</dt><dd id="slip-profit">—</dd></div>
+    </dl>
+    <p id="slip-result" class="muted small" role="status"></p>
+  </div>
+</section>
+<details id="advanced-calculator"><summary>Advanced single-bet calculator</summary><p class="muted">Enter a real sportsbook line and your <strong>own independently estimated</strong> probability. This calculator does not predict games or fetch live odds.</p>
 <div class="card"><h2>Evaluate a selection</h2>
 <label for="pick-choice">Market or selection</label>
 <select id="pick-choice">
@@ -130,6 +184,7 @@ select{min-height:44px} .card [hidden]{display:none}
 <p id="evaluating" class="muted" hidden></p>
 <div class="grid"><div class="card"><div class="muted small">Sportsbook break-even chance</div><div class="stat" id="breakeven">—</div></div><div class="card"><div class="muted small">Potential profit if successful</div><div class="stat" id="profit">—</div></div><div class="card"><div class="muted small">Estimated expected net value</div><div class="stat" id="ev">—</div></div><div class="card"><div class="muted small">Your probability edge vs break-even</div><div class="stat" id="edge">—</div></div></div>
 <div class="card"><h2>Important limitations</h2><ul class="muted"><li>Sportsbook odds include margin; break-even chance is not a no-vig fair probability.</li><li>Expected value is meaningful only if your estimated probability is reliable and independent of the odds.</li><li>Positive calculated EV does not guarantee a winning wager or long-term profitability.</li><li>No data is sent to a sportsbook or stored on a server.</li></ul></div>
+</details>
 </main><script>
 'use strict';
 const $=id=>document.getElementById(id);
@@ -313,4 +368,187 @@ $('calc').addEventListener('click',calculate);
 togglePlayerPicker();
 toggleGamePicker();
 calculate();
+const slip = [];
+let publishedProps = [];
+const marketLabels = {
+ player_anytime_td: 'Anytime touchdown',
+ player_rush_yds: 'Rushing yards',
+ player_reception_yds: 'Receiving yards',
+};
+const slipMarket = key => marketLabels[key] || key.replace(/^player_/, '').replaceAll('_', ' ');
+const slipAmerican = price => (price > 0 ? '+' : '') + price;
+const slipPriceValid = price => Number.isSafeInteger(price) && Math.abs(price) >= 100;
+const slipDecimal = price => 1 + (price > 0 ? price / 100 : 100 / -price);
+const slipKey = (row, game) => JSON.stringify([row.market, row.player, row.side || '', String(row.line ?? ''), game]);
+const slipSearchKey = value => value.normalize('NFKD').replace(/[’']/g, '').toLowerCase();
+const slipLabel = row => [row.player, slipMarket(row.market), row.market === 'player_anytime_td' && row.side === 'Yes' ? '' : row.side, row.line]
+ .filter(value => value != null && value !== '').join(' · ');
+
+function slipTotals(legs, stake, separate, quotedPrice) {
+ const knownGames = new Set(legs.map(leg => leg.game));
+ const needsQuote = legs.length > 1 && (knownGames.has('') || knownGames.size < legs.length);
+ const suppliedPrice = slipPriceValid(quotedPrice);
+ const risk = stake * (separate ? legs.length : 1);
+ if (!separate && needsQuote && !suppliedPrice) return {risk, total: null, needsQuote};
+ const payout = leg => Math.round(stake * slipDecimal(leg.price) * 100) / 100;
+ const total = separate ? legs.reduce((sum, leg) => sum + payout(leg), 0)
+  : suppliedPrice && legs.length > 1 ? payout({price: quotedPrice})
+  : Math.round(stake * legs.reduce((product, leg) => product * slipDecimal(leg.price), 1) * 100) / 100;
+ return {risk, total, needsQuote};
+}
+
+function renderSlipTotals() {
+ const separate = $('slip-mode').value === 'separate';
+ const multiple = slip.length > 1;
+ const stake = Number($('slip-stake').value);
+ const price = Number($('slip-combined-price').value);
+ $('slip-settings').hidden = !slip.length;
+ $('slip-mode').disabled = !multiple;
+ $('slip-stake-label').textContent = multiple && separate ? 'Stake per selection ($)' : 'Stake for this bet ($)';
+ $('slip-combined').hidden = !multiple || separate;
+ const {risk, total, needsQuote} = slipTotals(slip, stake, separate, price);
+ $('slip-price-help').textContent = needsQuote
+  ? 'Selections from the same game or with an unspecified matchup need the combined price shown in your FanDuel slip.'
+  : 'Optional. Enter FanDuel’s combined price to replace the estimate from the individual prices.';
+ const validStake = Number.isFinite(stake) && stake >= .01 && stake <= 1000000;
+ const priceError = multiple && !separate && $('slip-combined-price').value !== '' && !slipPriceValid(price);
+ const hasPayout = validStake && !priceError && total !== null && Number.isFinite(total);
+ $('slip-risk').textContent = validStake ? fmt(risk) : '—';
+ $('slip-return').textContent = hasPayout ? fmt(total) : '—';
+ $('slip-profit').textContent = hasPayout ? fmt(total - risk) : '—';
+ $('slip-result').textContent = !validStake ? 'Enter a stake from $0.01 to $1,000,000.'
+  : priceError ? 'Enter valid combined American odds.'
+  : multiple && separate ? 'Each selection settles separately. The totals above assume every selection wins.'
+  : multiple && total === null ? 'Enter FanDuel’s combined price to calculate the payout.'
+  : multiple && !slipPriceValid(price) ? 'Estimated from individual prices. Every leg must win for this payout.'
+  : multiple ? 'Based on the combined price you entered. Every leg must win for this payout.'
+  : 'Total payout includes the original stake.';
+}
+
+function renderSlip() {
+ const list = $('slip-legs');
+ list.replaceChildren();
+ $('slip-empty').hidden = !!slip.length;
+ for (const [index, leg] of slip.entries()) {
+  const item = document.createElement('li');
+  const title = document.createElement('strong');
+  title.textContent = leg.label + ' · ' + slipAmerican(leg.price);
+  const details = document.createElement('span');
+  details.className = 'muted small';
+  details.textContent = leg.source;
+  const remove = document.createElement('button');
+  remove.type = 'button';
+  remove.textContent = 'Remove';
+  remove.setAttribute('aria-label', 'Remove ' + leg.label);
+  remove.addEventListener('click', () => {
+   slip.splice(index, 1);
+   if (slip.length < 2) $('slip-mode').value = 'combined';
+   $('slip-combined-price').value = '';
+   $('slip-error').textContent = '';
+   renderSlip();
+   $('slip-search').focus();
+  });
+  item.append(title, details, remove);
+  list.append(item);
+ }
+ renderSlipTotals();
+}
+
+function addSlipLeg(leg) {
+ if (slip.some(existing => existing.key === leg.key)) {
+  $('slip-error').textContent = 'This selection is already on the slip.';
+  return false;
+ }
+ slip.push(leg);
+ $('slip-combined-price').value = '';
+ $('slip-error').textContent = '';
+ renderSlip();
+ return true;
+}
+
+function filterSlipProps() {
+ const selected = $('slip-quote').value;
+ const query = slipSearchKey($('slip-search').value.trim()).split(/\s+/);
+ const market = $('slip-market').value;
+ const matching = publishedProps.flatMap((row, index) => {
+  const label = slipLabel(row) + ' · ' + row.event;
+  return (!market || market === row.market) && query.every(word => slipSearchKey(label).includes(word))
+   ? [new Option(label + ' · ' + slipAmerican(row.odds), String(index))] : [];
+ });
+ $('slip-quote').replaceChildren(new Option('Choose a selection', ''), ...matching);
+ $('slip-quote').value = matching.some(option => option.value === selected) ? selected
+  : matching.length === 1 ? matching[0].value : '';
+ $('slip-add').disabled = $('slip-quote').value === '';
+ if (publishedProps.length) {
+  $('slip-feed').textContent = matching.length
+   ? matching.length + ' matching published prices. Verify the price in FanDuel before using it.'
+   : 'No matching prices in the snapshot. You can enter a line manually.';
+ }
+}
+
+async function loadSlipProps() {
+ try {
+  const response = await fetch('./data/odds.json', {cache: 'no-store'});
+  if (!response.ok) throw new Error('Snapshot unavailable');
+  const data = await response.json();
+  const now = Date.now();
+  const fresh = timestamp => {
+   const parsed = Date.parse(timestamp);
+   return parsed <= now + 300000 && now - parsed <= 86400000;
+  };
+  if (data.status !== 'ok' || !fresh(data.updated_at)) throw new Error('Snapshot unavailable or stale');
+  publishedProps = (Array.isArray(data.markets) ? data.markets : [])
+   .filter(row => typeof row?.market === 'string' && row.market.startsWith('player_')
+    && row.player && row.event && slipPriceValid(row.odds) && Date.parse(row.commence_time) > now
+    && fresh(row.bookmaker_updated))
+   .sort((a,b) => a.player.localeCompare(b.player) || slipLabel(a).localeCompare(slipLabel(b)));
+  for (const market of [...new Set(publishedProps.map(row => row.market))]) {
+   $('slip-market').add(new Option(slipMarket(market), market));
+  }
+  if (!publishedProps.length) $('slip-feed').textContent = 'No upcoming player-prop prices are available. Enter a line manually.';
+  filterSlipProps();
+ } catch {
+  $('slip-feed').textContent = 'Current FanDuel snapshot prices are unavailable. Enter a line manually.';
+ }
+}
+
+$('slip-search').addEventListener('input', filterSlipProps);
+$('slip-market').addEventListener('change', filterSlipProps);
+$('slip-quote').addEventListener('change', () => { $('slip-add').disabled = $('slip-quote').value === ''; });
+$('slip-add').addEventListener('click', () => {
+ const value = $('slip-quote').value;
+ if (value === '') return;
+ const row = publishedProps[Number(value)];
+ const label = slipLabel(row);
+ const game = row.event + '|' + new Date(row.commence_time).toISOString();
+ addSlipLeg({label, game, key: slipKey(row, game), price: row.odds,
+  source: row.event + ' · FanDuel snapshot · ' + new Date(row.bookmaker_updated).toLocaleString()});
+});
+$('slip-add-manual').addEventListener('click', () => {
+ const label = $('slip-manual-name').value.trim();
+ const price = Number($('slip-manual-price').value);
+ if (!label || !slipPriceValid(price)) {
+  $('slip-error').textContent = 'Enter a player prop and valid American odds.';
+  return;
+ }
+ if (addSlipLeg({label, price, game: '', key: 'manual:' + slipSearchKey(label), source: 'Manually entered price'})) {
+  $('slip-manual-name').value = '';
+  $('slip-manual-price').value = '';
+ }
+});
+for (const id of ['slip-stake', 'slip-combined-price']) $(id).addEventListener('input', renderSlipTotals);
+$('slip-mode').addEventListener('change', renderSlipTotals);
+if (selection && slipPriceValid(price)) {
+ let game = '';
+ const kickoff = Date.parse(params.get('kickoff'));
+ const event = (params.get('event') || '').trim();
+ if (event && Number.isFinite(kickoff)) game = event + '|' + new Date(kickoff).toISOString();
+ const prop = Object.fromEntries(['market', 'player', 'side', 'line'].map(key => [key, params.get(key)]));
+ const label = prop.market?.startsWith('player_') && prop.player ? slipLabel(prop) : selection;
+ addSlipLeg({label, game, key: game && prop.market ? slipKey(prop, game) : selection + '|' + game,
+  price, source: event ? event + ' · FanDuel snapshot' : 'Prefilled price'});
+ if (event) $('slip-search').value = event;
+}
+renderSlip();
+loadSlipProps();
 </script></body></html>
