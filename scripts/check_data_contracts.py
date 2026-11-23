@@ -15,6 +15,7 @@ REQUIRED = {
     "probability_evaluation.json": ("metrics",),
     "matchups.json": ("matchups",),
     "rosters.json": ("teams",),
+    "roster_quality.json": ("teams_requested", "teams_with_listings", "prediction_ready"),
     "market_audit.json": ("rows",),
     "holdout.json": ("metrics",),
     "history_quality.json": ("categories",),
