@@ -4,10 +4,15 @@
 For each player/market, predict next-game yards using only prior observed games.
 Report MAE and count; never present as a validated prop betting probability.
 """
+import importlib.util
 import json
 import math
 from collections import defaultdict
 from pathlib import Path
+
+spec_observations = importlib.util.spec_from_file_location("observations", "scripts/observations.py")
+observations = importlib.util.module_from_spec(spec_observations)
+spec_observations.loader.exec_module(observations)
 
 HISTORY = Path("data/history.json")
 OUTPUT = Path("data/evaluation.json")
@@ -29,7 +34,7 @@ def parse_yards(row):
 
 def evaluate(rows):
     by_player = defaultdict(dict)
-    for row in rows:
+    for row in observations.unique_rows(rows):
         parsed = parse_yards(row)
         player_id = str(row.get("player_id") or "").strip()
         event_id = str(row.get("event_id") or "").strip()
