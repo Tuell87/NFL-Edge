@@ -21,7 +21,7 @@ REQUIRED = {
     "holdout.json": ("metrics",),
     "history_quality.json": ("categories",),
 }
-LIST_FIELDS = {"markets", "games", "players", "rows", "matchups", "metrics", "categories", "teams"}
+LIST_FIELDS = {"markets", "games", "players", "rows", "matchups", "metrics", "categories", "teams", "warnings", "errors"}
 def validate(folder=DATA):
     errors = []
     for filename, fields in REQUIRED.items():
