@@ -55,13 +55,15 @@ def recent_completed_events(today, fetch):
                 event_id = str(event.get("id", ""))
                 if event_id:
                     found[event_id] = event
-    return sorted(found.values(), key=lambda event: event.get("date", ""))[:MAX_GAMES]
+    return sorted(found.values(), key=lambda event: event.get("date", ""), reverse=True)[:MAX_GAMES]
 
 
 def assemble(events, fetch):
     rows = []
     games = 0
-    for event in events:
+    # Fetch newest completed games first so row limits do not silently
+    # exclude recent observations while retaining older ones.
+    for event in sorted(events, key=lambda item: item.get("date", ""), reverse=True):
         try:
             summary = fetch(players.SUMMARY + "?" + urlencode({"event": event["id"]}))
             extracted = players.extract(event, summary)
