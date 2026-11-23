@@ -1,0 +1,58 @@
+import importlib.util
+import json
+import unittest
+from urllib.parse import urlparse
+
+spec = importlib.util.spec_from_file_location("live_pages", "scripts/check_live_pages.py")
+mod = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(mod)
+
+
+def response(path, *, unsafe=False):
+    if path.endswith(".html") or path == "/NFL-Edge/":
+        return b"<!doctype html><html><head></head><body>ok</body></html>", "text/html"
+    if path.endswith("opponent_holdout.json") or path.endswith("opponent_evaluation.json"):
+        return json.dumps({"status": "insufficient_data", "metrics": []}).encode(), "application/json"
+    if path.endswith("feed_integrity.json"):
+        return json.dumps({"status": "ok", "warnings": [], "errors": []}).encode(), "application/json"
+    if path.endswith("roster_quality.json"):
+        return json.dumps({"teams_requested": 0, "prediction_ready": False}).encode(), "application/json"
+    if path.endswith("matchups.json"):
+        return json.dumps({"status": "ok", "matchups": [{"prediction_ready": False}]}).encode(), "application/json"
+    if path.endswith("market_audit.json"):
+        return json.dumps({"status": "ok", "rows": [{
+            "prediction_ready": False, "recommended": unsafe}]}).encode(), "application/json"
+    raise OSError("unexpected path")
+
+
+class LiveSmokeTests(unittest.TestCase):
+    def test_valid_site_can_be_checked_without_network(self):
+        def get(url):
+            return response(urlparse(url).path)
+        self.assertEqual(mod.check("https://example.com/NFL-Edge/", get), [])
+
+    def test_unsafe_recommendation_blocks_live_verification(self):
+        def get(url):
+            return response(urlparse(url).path, unsafe=True)
+        self.assertTrue(any("unsafe market" in error
+                            for error in mod.check("https://example.com/NFL-Edge/", get)))
+
+    def test_missing_published_page_is_reported(self):
+        def get(url):
+            if url.endswith("opponent-holdout.html"):
+                raise OSError("404")
+            return response(urlparse(url).path)
+        self.assertTrue(any("opponent-holdout.html" in error
+                            for error in mod.check("https://example.com/NFL-Edge/", get)))
+
+    def test_invalid_json_is_reported(self):
+        def get(url):
+            if url.endswith("feed_integrity.json"):
+                return b"not-json", "text/plain"
+            return response(urlparse(url).path)
+        self.assertTrue(any("feed_integrity.json" in error
+                            for error in mod.check("https://example.com/NFL-Edge/", get)))
+
+
+if __name__ == "__main__":
+    unittest.main()
