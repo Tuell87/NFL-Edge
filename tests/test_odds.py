@@ -3,6 +3,7 @@ import json
 import os
 import tempfile
 import unittest
+from datetime import datetime, timezone
 from pathlib import Path
 from unittest.mock import patch
 
@@ -57,6 +58,28 @@ class OddsCollectorTests(unittest.TestCase):
         boards = [{"bookmakers": [{"key": "fanduel", "markets": [
             {"key": "player_anytime_td", "outcomes": [{"price": "not an odd"}, {"price": True}]}]}]}]
         self.assertEqual(mod.normalize(events, boards), [])
+
+
+    def test_preserves_valid_event_when_other_event_fails_or_does_not_match(self):
+        now = datetime(2026, 11, 22, tzinfo=timezone.utc)
+        events = [
+            {"id": key, "away_team": "Away", "home_team": "Home",
+             "commence_time": f"2026-11-{day}T18:00:00Z"}
+            for key, day in [("first", 23), ("second", 24)]
+        ]
+        board = {"id": "second", "bookmakers": [{"key": "fanduel", "markets": [
+            {"key": "player_anytime_td", "outcomes": [
+                {"price": 150, "description": "Player B"},
+                {"price": 150.5, "description": "Invalid price"},
+                {"price": 150, "point": float("nan"), "description": "Invalid line"},
+            ]},
+        ]}]}
+        for bad in (OSError("failed request"), {"id": "wrong", "bookmakers": board["bookmakers"]}):
+            with self.subTest(bad=type(bad)), patch.object(mod, "request", side_effect=[events, bad, board]):
+                result = mod.collect("test-key", now)
+                self.assertEqual(result["status"], "ok")
+                self.assertEqual(result["events_failed"], 1)
+                self.assertEqual([row["player"] for row in result["markets"]], ["Player B"])
 
 
 if __name__ == "__main__":
