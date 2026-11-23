@@ -5,6 +5,13 @@
 .tabs{display:flex;gap:6px;overflow-x:auto;scrollbar-width:thin;padding:5px 0 12px;position:sticky;top:0;z-index:2;background:#0b1220}.tab{flex:0 0 auto;background:#192b40;border:1px solid #3b5268;color:#eaf3ff;border-radius:10px;padding:12px 15px;font-size:14px;white-space:nowrap}.tab[aria-selected="true"]{background:#166e5c;border-color:#55e5b3;color:#fff}.tab:focus-visible,.quick-link:focus-visible{outline:3px solid #55e5b3;outline-offset:2px}.tab-panel[hidden]{display:none}.quick-links{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}.quick-link{display:flex;flex-direction:column;gap:4px;text-decoration:none;color:#eaf3ff;padding:12px;border:1px solid #3b5268;border-radius:10px;background:#172a40;min-width:0}.quick-link strong{font-size:14px}.quick-link span{color:#b5c9db;font-size:12px;line-height:1.35}.section-heading{font-size:16px;margin:20px 0 9px}.compact-note{font-size:13px;color:#b5c9db}.game-filters{display:flex;gap:7px;flex-wrap:wrap}.game-filter{background:#22364c;border:1px solid #486078;padding:8px 12px;font-size:13px}.game-filter[aria-pressed="true"]{background:#166e5c;border-color:#55e5b3}.game{padding:10px 0}.game .score{font-size:15px}.game .small{font-size:12px}@media(max-width:450px){.quick-links{grid-template-columns:1fr 1fr}.quick-link{padding:10px}.tab{padding:11px 12px}main{padding-top:12px}}.game-link{display:block;min-height:44px;padding:8px 10px;border-radius:8px;color:inherit;text-decoration:none}
 .game-link:hover,.game-link:focus-visible{background:#22364c;outline:2px solid #55e5b3}
 .game-action{display:block;margin-top:6px;color:#55e5b3}
+.reward-form{display:grid;gap:10px}
+.reward-form label{display:grid;gap:4px}
+.reward-form [hidden],#reward-more[hidden]{display:none}
+.reward-form select,.reward-form input{max-width:100%;width:100%;min-height:44px;border:1px solid #486078;border-radius:8px;padding:7px 9px;font-size:16px;background:#172a40;color:inherit}
+.reward-row{border-top:1px solid #354b61;padding:8px 0}
+.reward-row summary{cursor:pointer;padding:6px 0}
+#reward-more{margin-top:8px}
 </style><link rel="stylesheet" href="./mobile-navigation.css">
 </head><body><main><header><h1>NFL <span>EDGE</span></h1><span class="pill">Game Day</span></header>
 <p class="muted">NFL game results and FanDuel odds snapshots. Prices are not guaranteed current. Independent player predictions are still in development.</p>
@@ -14,6 +21,7 @@
 <button class="tab" type="button" role="tab" id="tab-odds" aria-controls="panel-odds" aria-selected="false" tabindex="-1" data-tab="odds">Odds & Tools</button>
 <button class="tab" type="button" role="tab" id="tab-research" aria-controls="panel-research" aria-selected="false" tabindex="-1" data-tab="research">Research</button>
 <button class="tab" type="button" role="tab" id="tab-project" aria-controls="panel-project" aria-selected="false" tabindex="-1" data-tab="project">Project</button>
+<button class="tab" type="button" role="tab" id="tab-rewards" aria-controls="panel-rewards" aria-selected="false" tabindex="-1" data-tab="rewards">Rewards</button>
 </nav>
 <section class="tab-panel" role="tabpanel" id="panel-games" aria-labelledby="tab-games">
 <section class="panel"><div class="row"><h2>NFL Games</h2><button id="refresh" type="button">Refresh</button></div><p id="games-status" class="muted" role="status">Loading game schedule…</p><p id="games-time" class="small muted"></p><div class="game-filters" role="group" aria-label="Game status filter"><button class="game-filter" type="button" data-filter="all" aria-pressed="true">All</button><button class="game-filter" type="button" data-filter="scheduled" aria-pressed="false">Upcoming</button><button class="game-filter" type="button" data-filter="live" aria-pressed="false">Live</button><button class="game-filter" type="button" data-filter="final" aria-pressed="false">Final</button></div><div id="games"></div></section>
@@ -31,12 +39,48 @@
 <section class="tab-panel" role="tabpanel" id="panel-project" aria-labelledby="tab-project" hidden>
 <h2>Project & Help</h2><div class="quick-links"><a class="quick-link" href="./dashboard.html"><strong>Project Command Center</strong><span>Current GitHub PRs · CI and deployments · research status</span></a><a class="quick-link" href="./legacy-demo.html"><strong>Touchdown Probability Lab</strong><span>Educational simulation · not live odds</span></a><a class="quick-link" href="https://github.com/Tuell87/NFL-Edge/blob/main/NFL-EDGE-PROJECT-TRACKER.md"><strong>Engineering Tracker</strong><span>Open priorities and architecture</span></a><a class="quick-link" href="https://github.com/Tuell87/NFL-Edge/blob/main/PROJECT-AUDIT-2026-11-23.md"><strong>Project Audit</strong><span>Fixed issues and review decisions</span></a></div>
 <details class="panel"><summary>How to use NFL Edge</summary><p class="compact-note">Scores come from ESPN's public scoreboard. Odds come from separate FanDuel snapshots collected through The Odds API. Timestamps describe feed collection, not a guarantee that prices are unchanged. Manual EV tools require your own estimates.</p></details></section>
+<section class="tab-panel" role="tabpanel" id="panel-rewards" aria-labelledby="tab-rewards" hidden>
+<h2>FanDuel Rewards</h2>
+<p class="compact-note">Enter an offer from your FanDuel Rewards Hub. Confirm its exact terms and current price in FanDuel before using it.</p>
+<div class="panel reward-form">
+<label>Offer type<select id="reward-type"><option value="boost">Profit boost</option><option value="bonus">Bonus bet</option></select></label>
+<label>Boost percentage<select id="reward-boost"><option value="20">20%</option><option value="25">25%</option><option value="30" selected>30%</option><option value="50">50%</option><option value="100">100%</option><option value="custom">Custom…</option></select></label>
+<label id="reward-boost-custom" hidden>Custom boost percentage<input id="reward-boost-input" type="number" min="0" step="any" inputmode="decimal"></label>
+<label>Stake or bonus amount<select id="reward-stake"><option value="5">$5</option><option value="10" selected>$10</option><option value="20">$20</option><option value="25">$25</option><option value="50">$50</option><option value="100">$100</option><option value="custom">Custom…</option></select></label>
+<label id="reward-stake-custom" hidden>Custom stake or bonus amount<input id="reward-stake-input" type="number" min="0.01" step="0.01" inputmode="decimal"></label>
+<label>Minimum unboosted odds<select id="reward-minimum"><option value="" selected>No minimum</option><option value="-500">-500</option><option value="-300">-300</option><option value="-250">-250</option><option value="-200">-200</option><option value="-150">-150</option><option value="-110">-110</option><option value="100">+100</option><option value="120">+120</option><option value="150">+150</option><option value="200">+200</option><option value="300">+300</option><option value="500">+500</option><option value="custom">Custom…</option></select></label>
+<label id="reward-minimum-custom" hidden>Custom minimum unboosted odds<input id="reward-minimum-input" type="number" step="1" inputmode="numeric"></label>
+<label>Offer applies to<select id="reward-format"><option value="single">Single selections</option><option value="parlay">Parlays only</option></select></label>
+<label id="reward-expiry-label">Expiry <select id="reward-expiry-mode"><option value="">No expiry entered</option><option value="custom">Enter date and time…</option></select></label>
+<label id="reward-expiry-field" hidden>Expiry in your local time<input id="reward-expiry" type="datetime-local"></label>
+</div>
+<section class="panel" id="reward-board">
+<h3>Compare published selections</h3>
+<div class="reward-form">
+<label>Game<select id="reward-game"><option value="">All games with published odds</option></select></label>
+<label>Market<select id="reward-market"><option value="">All published markets</option></select></label>
+<label>Sort by<select id="reward-order"><option value="chance">Higher price-implied chance</option><option value="payout">Higher payout if it wins</option></select></label>
+</div>
+<p class="compact-note">The feed covers selected player props. The price-implied chance includes sportsbook margin.</p>
+<p id="reward-status" role="status" class="compact-note"></p>
+<div id="reward-rows"></div>
+<button type="button" id="reward-more" hidden>Show more</button>
+</section>
+<section class="panel reward-form">
+<h3>Compare one price manually</h3>
+<label>Unboosted American odds<select id="reward-price"><option value="-500">-500</option><option value="-300">-300</option><option value="-250">-250</option><option value="-200">-200</option><option value="-150">-150</option><option value="-110">-110</option><option value="100" selected>+100</option><option value="120">+120</option><option value="150">+150</option><option value="200">+200</option><option value="300">+300</option><option value="500">+500</option><option value="custom">Custom…</option></select></label>
+<label id="reward-price-custom" hidden>Custom unboosted american odds<input id="reward-price-input" type="number" step="1" inputmode="numeric"></label>
+<label>Your independent win estimate<select id="reward-prob"><option value="" selected>Skip estimate</option><option value="40">40%</option><option value="50">50%</option><option value="60">60%</option><option value="65">65%</option><option value="70">70%</option><option value="75">75%</option><option value="80">80%</option><option value="90">90%</option><option value="custom">Custom…</option></select></label>
+<label id="reward-prob-custom" hidden>Custom your independent win estimate<input id="reward-prob-input" type="number" min="0" max="100" step="any" inputmode="decimal"></label>
+<p id="reward-example" role="status"></p>
+</section>
+</section>
 </main><script>
 'use strict';
 const $=id=>document.getElementById(id);
 function node(tag,cls,value){const e=document.createElement(tag);if(cls)e.className=cls;if(value!==undefined)e.textContent=String(value);return e;}
 function fmtDate(value){if(!value)return 'Time unavailable';const d=new Date(value);return Number.isNaN(d.getTime())?'Time unavailable':d.toLocaleString();}
-const TAB_IDS=['games','players','odds','research','project'];
+const TAB_IDS=['games','players','odds','research','project','rewards'];
 let currentGames=[],gameFilter='all';
 function selectTab(name,updateHash=true){if(!TAB_IDS.includes(name))name='games';for(const id of TAB_IDS){const active=id===name,tab=$('tab-'+id),panel=$('panel-'+id);tab.setAttribute('aria-selected',String(active));tab.tabIndex=active?0:-1;panel.hidden=!active;}if(updateHash&&location.hash!=='#'+name)history.replaceState(null,'','#'+name);}
 for(const tab of document.querySelectorAll('[data-tab]')){tab.addEventListener('click',()=>selectTab(tab.dataset.tab));tab.addEventListener('keydown',e=>{if(!['ArrowRight','ArrowLeft','Home','End'].includes(e.key))return;e.preventDefault();const i=TAB_IDS.indexOf(tab.dataset.tab);const next=e.key==='Home'?0:e.key==='End'?TAB_IDS.length-1:(i+(e.key==='ArrowRight'?1:-1)+TAB_IDS.length)%TAB_IDS.length;selectTab(TAB_IDS[next]);$('tab-'+TAB_IDS[next]).focus();});}
@@ -76,7 +120,146 @@ function renderGames() {
 for(const btn of document.querySelectorAll('[data-filter]'))btn.addEventListener('click',()=>{gameFilter=btn.dataset.filter;for(const b of document.querySelectorAll('[data-filter]'))b.setAttribute('aria-pressed',String(b===btn));renderGames();});
 async function loadGames(){const status=$('games-status'),list=$('games');status.textContent='Checking published scoreboard…';list.replaceChildren();try{const res=await fetch('./data/games.json',{cache:'no-store'});if(!res.ok)throw Error('unavailable');const data=await res.json();$('games-time').textContent=data.checked_at?'Feed checked: '+fmtDate(data.checked_at):'';const games=Array.isArray(data.games)?data.games:[];if(data.status!=='ok'||!games.length){status.textContent=data.status==='no_games'?'No games in the current ESPN scoreboard window.':'Game data unavailable. Try again later.';return;}const coverage = {next_week_included: ' · Includes next week', next_week_unavailable: ' · Next week unavailable'};
 status.textContent = games.length + ' games in scoreboard snapshot' + (coverage[data.schedule_coverage] || '');currentGames=games;renderGames();}catch(e){status.textContent='Game data unavailable. Try again later.';}}
-async function loadOdds(){try{const res=await fetch('./data/odds.json',{cache:'no-store'});if(!res.ok)throw Error('unavailable');const data=await res.json();const count=Array.isArray(data.markets)?data.markets.length:0;$('odds-summary').textContent=data.status==='ok'?count+' published selections · checked '+fmtDate(data.updated_at):'Odds feed '+(data.status==='not_configured'?'not configured':'temporarily unavailable');}catch(e){$('odds-summary').textContent='Odds feed unavailable';}}
+async function loadOdds(){try{const res=await fetch('./data/odds.json',{cache:'no-store'});if(!res.ok)throw Error('unavailable');const data=await res.json();setRewardOdds(data);const count=Array.isArray(data.markets)?data.markets.length:0;$('odds-summary').textContent=data.status==='ok'?count+' published selections · checked '+fmtDate(data.updated_at):'Odds feed '+(data.status==='not_configured'?'not configured':'temporarily unavailable');}catch(e){$('odds-summary').textContent='Odds feed unavailable';setRewardOdds({});}}
 async function loadResearch(){try{const r=await fetch('./data/research_status.json',{cache:'no-store'});if(!r.ok)throw Error('unavailable');const d=await r.json();$('research-status').textContent='Research only · '+(d.history?.games??0)+' historical games · '+(d.seasons_observed?.length??0)+' NFL seasons observed';$('research-detail').textContent='2024 archive: '+(d.history?.archive_2024_status||'unavailable')+' · '+(d.history?.archive_2024_games_added??0)+' games added · 2025 archive: '+(d.history?.archive_2025_status||'unavailable')+' · '+(d.history?.archive_2025_games_added??0)+' games added · '+(d.rosters?.teams_with_listings??0)+' teams with roster snapshots · '+(d.readiness_blockers?.length??0)+' readiness blockers';}catch(e){$('research-status').textContent='Research status unavailable; no predictions verified.';}}
+
+// Rewards comparisons are based on the published odds snapshot and manually entered terms.
+const reward = id => $('reward-' + id);
+const rewardMoney = new Intl.NumberFormat('en-US', {style:'currency', currency:'USD'});
+const rewardMarketNames = {player_anytime_td:'Anytime touchdown', player_rush_yds:'Rushing yards', player_reception_yds:'Receiving yards'};
+const rewardMarketLabel = key => rewardMarketNames[key] || String(key).replaceAll('_', ' ');
+const rewardPrice = price => (price > 0 ? '+' : '') + price;
+const rewardValidPrice = price => Number.isSafeInteger(price) && Math.abs(price) >= 100;
+const rewardDecimal = price => price > 0 ? 1 + price / 100 : 1 + 100 / -price;
+let rewardOdds = [];
+let rewardShown = 8;
+let rewardFeedStatus = 'Checking the published odds snapshot…';
+
+function rewardValue(id) {
+ const choice = reward(id).value;
+ return choice === 'custom' ? reward(id + '-input').value.trim() : choice;
+}
+
+function rewardTerms() {
+ const bonus = reward('type').value === 'bonus';
+ const stake = Number(rewardValue('stake'));
+ const boost = bonus ? 0 : Number(rewardValue('boost')) / 100;
+ const minimumText = rewardValue('minimum');
+ const minimum = Number(minimumText);
+ const expiry = Date.parse(reward('expiry').value);
+ if (reward('expiry-mode').value === 'custom' && !Number.isFinite(expiry)) return {error:'Enter the offer expiry date and time.'};
+ if (reward('expiry-mode').value === 'custom' && expiry <= Date.now()) return {error:'This offer has expired.'};
+ if (!Number.isFinite(stake) || stake < .01 || stake > 1000000) return {error:'Enter a valid stake or bonus amount.'};
+ if (!bonus && (!Number.isFinite(boost) || boost <= 0 || boost > 10)) return {error:'Enter a boost percentage above 0% and at most 1,000%.'};
+ if ((minimumText || reward('minimum').value === 'custom') && !rewardValidPrice(minimum)) return {error:'Enter valid minimum American odds.'};
+ return {bonus, stake, boost, minimum: minimumText ? minimum : null};
+}
+
+function rewardMeetsMinimum(price, terms) {
+ return terms.minimum === null || rewardDecimal(price) >= rewardDecimal(terms.minimum);
+}
+
+function rewardResult(price, terms) {
+ const decimal = rewardDecimal(price);
+ const payout = terms.stake * (decimal - 1) * (1 + terms.boost);
+ return {payout, implied: 1 / decimal, breakEven: terms.bonus ? null : terms.stake / (terms.stake + payout)};
+}
+
+function showRewardExample(terms) {
+ const price = Number(rewardValue('price'));
+ if (terms.error || !rewardValidPrice(price) || !rewardMeetsMinimum(price, terms)) {
+  reward('example').textContent = terms.error || (!rewardValidPrice(price)
+   ? 'Enter a valid American price.' : 'This price is below the offer’s minimum odds.');
+  return;
+ }
+ const result = rewardResult(price, terms);
+ const cash = rewardMoney.format(result.payout);
+ const percent = fraction => (fraction * 100).toFixed(1) + '%';
+ const parts = [terms.bonus ? cash + ' cash if it wins, assuming the bonus stake is excluded'
+  : cash + ' net profit if it wins · ' + percent(result.breakEven) + ' boosted break-even chance',
+  percent(result.implied) + ' price-implied chance before the offer'];
+ const raw = rewardValue('prob');
+ if (raw) {
+  const chance = Number(raw) / 100;
+  if (chance >= 0 && chance <= 1) {
+   const expected = chance * result.payout - (terms.bonus ? 0 : (1-chance) * terms.stake);
+   parts.push(rewardMoney.format(expected) + (terms.bonus ? ' expected cash value' : ' estimated net EV') + ' using your estimate');
+  } else parts.push('Enter a win estimate from 0% to 100%');
+ }
+ reward('example').textContent = parts.join(' · ');
+}
+
+function renderRewards() {
+ const bonus = reward('type').value === 'bonus';
+ reward('boost').closest('label').hidden = bonus;
+ for (const id of ['boost','stake','minimum','price','prob']) {
+  reward(id + '-custom').hidden = reward(id).value !== 'custom' || id === 'boost' && bonus;
+ }
+ reward('expiry-field').hidden = reward('expiry-mode').value !== 'custom';
+ const terms = rewardTerms();
+ showRewardExample(terms);
+ const parlay = reward('format').value === 'parlay';
+ const root = reward('rows');
+ root.replaceChildren();
+ const now = Date.now();
+ const rows = !terms.error && !parlay ? rewardOdds.filter(row => Date.parse(row.commence_time) > now
+  && (!reward('game').value || row.event === reward('game').value)
+  && (!reward('market').value || row.market === reward('market').value)
+  && rewardMeetsMinimum(row.odds, terms)).map(row => ({row, ...rewardResult(row.odds, terms)})) : [];
+ rows.sort(reward('order').value === 'payout' ? (a,b) => b.payout - a.payout : (a,b) => b.implied - a.implied);
+ reward('status').textContent = terms.error || (parlay ? 'Enter the combined unboosted price below. Check the minimum leg count and other terms in FanDuel.'
+  : rewardFeedStatus || (rows.length ? rows.length + ' snapshot selections meeting the filters above.' : 'No upcoming snapshot selections match these filters.'));
+ for (const {row, payout, implied} of rows.slice(0, rewardShown)) {
+  const item = node('details','reward-row');
+  item.append(node('summary','', [row.player, rewardMarketLabel(row.market), row.side, row.line, rewardPrice(row.odds)].filter(value => value != null && value !== '').join(' · ')));
+  item.append(node('p','compact-note',row.event + ' · Kickoff ' + fmtDate(row.commence_time)));
+  item.append(node('p','', rewardMoney.format(payout) + (bonus ? ' bonus cash payout' : ' boosted net profit') + ' if it wins · ' + (implied * 100).toFixed(1) + '% price-implied'));
+  item.append(node('p','compact-note','Bookmaker update: ' + fmtDate(row.bookmaker_updated)));
+  const button = node('button','','Use price in manual comparison');
+  button.type = 'button';
+  button.addEventListener('click', () => {
+   const select = reward('price');
+   select.value = String(row.odds);
+   if (!select.value) {
+    select.value = 'custom';
+    reward('price-input').value = String(row.odds);
+   }
+   reward('price').closest('section').scrollIntoView({block:'nearest'});
+   renderRewards();
+   reward('price').focus();
+  });
+  item.append(button);
+  root.append(item);
+ }
+ reward('more').hidden = rows.length <= rewardShown;
+}
+
+function setRewardOdds(data) {
+ const checked = Date.parse(data.updated_at);
+ const now = Date.now();
+ if (!Number.isFinite(checked) || checked > now + 300000 || now - checked > 86400000) {
+  rewardFeedStatus = 'The snapshot is unavailable or older than 24 hours. You can compare a current price manually.';
+ } else if (data.status !== 'ok') {
+  rewardFeedStatus = 'No published FanDuel odds are available. You can enter a price manually.';
+ } else {
+  rewardFeedStatus = '';
+  const markets = Array.isArray(data.markets) ? data.markets : [];
+  rewardOdds = markets.filter(row => row?.event && row.market && rewardValidPrice(row.odds)
+   && Date.parse(row.commence_time) > now && Date.parse(row.bookmaker_updated) <= now + 300000
+   && now - Date.parse(row.bookmaker_updated) <= 86400000);
+  for (const event of [...new Set(rewardOdds.map(row => row.event))].sort()) reward('game').add(new Option(event, event));
+  for (const market of [...new Set(rewardOdds.map(row => row.market))].sort()) reward('market').add(new Option(rewardMarketLabel(market), market));
+ }
+ renderRewards();
+}
+
+const rewardsPanel = $('panel-rewards');
+rewardsPanel.addEventListener('change', () => {rewardShown = 8; renderRewards();});
+rewardsPanel.addEventListener('input', event => {
+ if (event.target.tagName === 'INPUT') {rewardShown = 8; renderRewards();}
+});
+reward('more').addEventListener('click', () => {rewardShown += 8; renderRewards();});
+renderRewards();
+
 $('refresh').addEventListener('click',loadGames);loadGames();loadOdds();loadResearch();
 </script></body></html>

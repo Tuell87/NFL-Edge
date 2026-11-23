@@ -5,12 +5,12 @@ const home=fs.readFileSync('index.html','utf8');
 const matchups=fs.readFileSync('matchups.html','utf8');
 const players=fs.readFileSync('players.html','utf8');
 const history=fs.readFileSync('history.html','utf8');
-test('five mobile sections use accessible tab and panel semantics',()=>{
- for(const id of ['games','players','odds','research','project']){
+test('six mobile sections use accessible tab and panel semantics',()=>{
+ for(const id of ['games','players','odds','research','project','rewards']){
   assert.match(home,new RegExp('role="tab" id="tab-'+id+'" aria-controls="panel-'+id+'"'));
   assert.match(home,new RegExp('role="tabpanel" id="panel-'+id+'" aria-labelledby="tab-'+id+'"'));
  }
- assert.equal((home.match(/role="tab" id=/g)||[]).length,5);
+ assert.equal((home.match(/role="tab" id=/g)||[]).length,6);
  assert.match(home,/overflow-x:auto/);
 });
 test('tab selection supports direct links, keyboard and hidden panels',()=>{
