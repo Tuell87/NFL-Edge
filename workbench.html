@@ -3,6 +3,12 @@
 <style>
 :root{font-family:system-ui,-apple-system,sans-serif;color:#edf4ff;background:#0b1220}*{box-sizing:border-box}body{margin:0}main{max-width:850px;margin:auto;padding:22px 16px 65px}a{color:#54e6b5}.card{background:#16263b;border:1px solid #34485e;border-radius:16px;padding:19px;margin:14px 0}h1{margin:10px 0;font-size:28px}h2{font-size:18px}.muted{color:#a7bad0}label{display:block;margin:12px 0 5px}input,select{width:100%;background:#0d1b2c;color:white;border:1px solid #52667d;border-radius:9px;padding:13px;font-size:17px}button{border:0;border-radius:10px;padding:13px 16px;background:#188366;color:white;font-weight:700;font-size:15px;cursor:pointer}.grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}.stat{font-size:26px;font-weight:800;color:#56e5b4}.small{font-size:13px}.warn{color:#ffd38a}.bad{color:#ffaaaa}.result{min-height:55px}ul{padding-left:20px}@media(max-width:400px){.grid{grid-template-columns:1fr}} 
 select{min-height:44px} .card [hidden]{display:none}
+#player-picker,#game-picker{margin-top:12px;padding:12px;border:1px solid #34485e;border-radius:10px}
+#player-picker label,#game-picker label{margin-top:0}
+#player-name,#game-name{box-sizing:border-box}
+#player-suggestions{display:grid;gap:4px;max-height:220px;overflow:auto;margin:8px 0}
+#player-suggestions button{min-height:44px;text-align:left;background:#22364c}
+#player-suggestions button[aria-pressed="true"]{background:#186852}
 </style><link rel="stylesheet" href="./mobile-navigation.css">
 </head><body>
 <nav class="mobile-sections" aria-label="Main site sections">
@@ -17,17 +23,36 @@ select{min-height:44px} .card [hidden]{display:none}
 <label for="pick-choice">Market or selection</label>
 <select id="pick-choice">
   <option value="" selected>No description</option>
-  <option value="Anytime touchdown">Anytime touchdown</option>
-  <option value="Rushing yards">Rushing yards</option>
-  <option value="Receiving yards">Receiving yards</option>
-  <option value="Moneyline">Moneyline</option>
-  <option value="Spread">Spread</option>
-  <option value="Game total">Game total</option>
+  <option data-player-prop value="Anytime touchdown">Anytime touchdown</option>
+  <option data-player-prop value="Rushing yards">Rushing yards</option>
+  <option data-player-prop value="Receiving yards">Receiving yards</option>
+  <option data-player-prop value="Player prop">Other player prop</option>
+  <option data-game-market value="Moneyline">Moneyline</option>
+  <option data-game-market value="Spread">Spread</option>
+  <option data-game-market value="Game total">Game total</option>
   <option value="custom">Custom…</option>
 </select>
 <div id="pick-custom" hidden>
   <label for="pick">Custom market or selection</label>
   <input id="pick" type="text" maxlength="120" autocomplete="off">
+</div>
+<div id="player-picker" hidden>
+  <label for="player-name">Player name</label>
+  <input id="player-name" type="search" maxlength="120" autocomplete="off" placeholder="Search or enter a name" aria-describedby="player-status">
+  <div id="player-suggestions" aria-label="Player suggestions" role="group"></div>
+  <p id="player-status" class="muted small" role="status"></p>
+</div>
+<div id="game-picker" hidden>
+  <label for="game-choice">Matchup</label>
+  <select id="game-choice">
+    <option value="">Choose a matchup</option>
+    <option value="custom">Custom matchup…</option>
+  </select>
+  <div id="game-custom" hidden>
+    <label for="game-name">Custom matchup</label>
+    <input id="game-name" type="text" maxlength="120" autocomplete="off">
+  </div>
+  <p id="game-picker-status" class="muted small" role="status"></p>
 </div>
 <label for="odds-choice">American odds</label>
 <select id="odds-choice">
@@ -129,11 +154,123 @@ if (Number.isSafeInteger(price) && Math.abs(price) >= 100) {
  prefill('odds', String(price), price > 0 ? '+' + price : String(price));
 }
 
+const marketOption = () => $('pick-choice').selectedOptions[0];
+const playerMarket = () => marketOption()?.hasAttribute('data-player-prop');
+const gameMarket = () => marketOption()?.hasAttribute('data-game-market');
+const nameOrder = new Intl.Collator('en', {sensitivity: 'base'});
+let playerNames = null;
+let playerNamesRequest;
+let selectedPlayer = '';
+let gamesRequest;
+
+async function loadGameChoices() {
+ const status = $('game-picker-status');
+ status.textContent = 'Loading matchups…';
+ try {
+  const response = await fetch('./data/games.json');
+  if (!response.ok) throw new Error('Schedule unavailable');
+  const schedule = await response.json();
+  const games = (schedule.games || []).filter(game => game?.away?.name && game?.home?.name)
+   .sort((a, b) => String(a.start || '').localeCompare(String(b.start || '')));
+  const custom = $('game-choice').options[1];
+  for (const game of games) {
+   const matchup = game.away.name + ' at ' + game.home.name;
+   const start = Date.parse(game.start);
+   const date = Number.isFinite(start) ? new Date(start).toLocaleDateString() : '';
+   const label = [matchup, date].filter(Boolean).join(' · ');
+   $('game-choice').add(new Option(label, 'game:' + label), custom);
+  }
+  status.textContent = games.length ? '' : 'No matchups in this schedule. You can enter one.';
+ } catch {
+  status.textContent = 'Schedule unavailable. You can enter a matchup.';
+ }
+}
+
+function toggleGamePicker() {
+ $('game-picker').hidden = !gameMarket();
+ if (gameMarket()) gamesRequest ??= loadGameChoices();
+}
+
+$('game-choice').addEventListener('change', () => {
+ const custom = $('game-choice').value === 'custom';
+ $('game-custom').hidden = !custom;
+ if (custom) $('game-name').focus();
+ calculate();
+});
+$('game-name').addEventListener('input', calculate);
+
+const searchName = name => name.normalize('NFD').replace(/\p{M}/gu, '').toLocaleLowerCase('en');
+
+function renderPlayerSuggestions() {
+ const input = $('player-name');
+ const list = $('player-suggestions');
+ const query = searchName(input.value.trim());
+ const matches = (playerNames || []).filter(name => searchName(name).includes(query));
+ const buttons = matches.slice(0, 20).map(name => {
+  const button = document.createElement('button');
+  button.type = 'button';
+  button.textContent = name;
+  button.setAttribute('aria-pressed', String(name === selectedPlayer));
+  button.addEventListener('click', () => {
+   selectedPlayer = name;
+   input.value = name;
+   for (const option of list.children) {
+    option.setAttribute('aria-pressed', String(option === button));
+   }
+   $('player-status').textContent = name + ' selected.';
+   calculate();
+  });
+  return button;
+ });
+ list.replaceChildren(...buttons);
+ $('player-status').textContent = playerNames === null ? 'Loading player names…'
+  : !matches.length ? 'No suggestions available. You can enter a player name.'
+  : matches.length > buttons.length ? 'Showing the first 20 matches. Type to narrow the list.'
+  : matches.length + (matches.length === 1 ? ' match' : ' matches') + '.';
+}
+
+async function loadPlayerNames() {
+ const feeds = await Promise.allSettled(['rosters', 'players', 'odds'].map(async name => {
+  const response = await fetch('./data/' + name + '.json');
+  if (!response.ok) throw new Error('Player data unavailable');
+  return response.json();
+ }));
+ const [rosters, players, odds] = feeds.map(feed => feed.status === 'fulfilled' ? feed.value : {});
+ const names = new Map();
+ function addName(row) {
+  const name = typeof row?.player === 'string' ? row.player.trim() : '';
+  if (name && !names.has(searchName(name))) names.set(searchName(name), name);
+ }
+ for (const team of rosters.teams || []) (team.athletes || []).forEach(addName);
+ (players.players || []).forEach(addName);
+ (odds.markets || []).forEach(addName);
+ playerNames = [...names.values()].sort(nameOrder.compare);
+}
+
+function togglePlayerPicker() {
+ $('player-picker').hidden = !playerMarket();
+ if ($('player-picker').hidden) return;
+ renderPlayerSuggestions();
+ playerNamesRequest ??= loadPlayerNames().catch(() => { playerNames = []; }).then(() => {
+  if (playerMarket()) renderPlayerSuggestions();
+ });
+}
+
+$('player-name').addEventListener('input', () => {
+ selectedPlayer = '';
+ renderPlayerSuggestions();
+ calculate();
+});
+
 for (const id of ['pick', 'odds', 'prob', 'stake']) {
  $(id + '-choice').addEventListener('change', () => {
   const custom = $(id + '-choice').value === 'custom';
   $(id + '-custom').hidden = !custom;
   if (custom) $(id).focus();
+  if (id === 'pick') {
+   togglePlayerPicker();
+   toggleGamePicker();
+  }
   calculate();
  });
  $(id).addEventListener('input', calculate);
@@ -141,12 +278,25 @@ for (const id of ['pick', 'odds', 'prob', 'stake']) {
 
 function calculate(){
  const pickChoice = $('pick-choice').value;
- const description = pickChoice.startsWith('selection:')
+ const market = pickChoice.startsWith('selection:')
   ? pickChoice.slice('selection:'.length) : fieldValue('pick').trim();
+ const player = playerMarket() ? $('player-name').value.trim() : '';
+ const gameChoice = $('game-choice').value;
+ const matchup = !gameMarket() ? '' : gameChoice === 'custom'
+  ? $('game-name').value.trim() : gameChoice.slice('game:'.length);
+ const description = [player || matchup, market].filter(Boolean).join(' · ');
  $('evaluating').textContent = description;
  $('evaluating').hidden = !description;
  const odds=Number(fieldValue('odds')),stake=Number(fieldValue('stake')),raw=fieldValue('prob').trim();
  $('breakeven').textContent=$('profit').textContent=$('ev').textContent=$('edge').textContent='—';
+ if (playerMarket() && !player) {
+  $('message').textContent = 'Choose or enter a player name.';
+  return;
+ }
+ if (gameMarket() && !matchup) {
+  $('message').textContent = 'Choose or enter a matchup.';
+  return;
+ }
  if(!Number.isInteger(odds)||Math.abs(odds)<100||!Number.isFinite(stake)||stake<=0||stake>1000000){$('message').textContent='Enter valid American odds (at least +100 or at most -100) and a positive stake.';return;}
  const breakEven=odds>0?100/(odds+100):-odds/(-odds+100);
  const profit=stake*(odds>0?odds/100:100/-odds);
@@ -158,5 +308,8 @@ function calculate(){
  $('ev').textContent=fmt(ev);$('edge').textContent=((p-breakEven)*100).toFixed(1)+' percentage points';
  $('message').textContent='Illustrative calculation only; the probability was entered by you, not generated by an NFL model.';
 }
-$('calc').addEventListener('click',calculate);calculate();
+$('calc').addEventListener('click',calculate);
+togglePlayerPicker();
+toggleGamePicker();
+calculate();
 </script></body></html>
