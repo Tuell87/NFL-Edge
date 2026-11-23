@@ -58,25 +58,34 @@ def recent_completed_events(today, fetch):
     return sorted(found.values(), key=lambda event: event.get("date", ""), reverse=True)[:MAX_GAMES]
 
 
-def assemble(events, fetch):
+def assemble(events, fetch, diagnostics=None):
     """Preserve complete event groups; do not publish a partial game at the row cap."""
     rows = []
     games = 0
+    attempted = 0
+    limit_hit = False
     # Fetch newest completed games first so row limits do not silently
     # exclude recent observations while retaining older ones.
     for event in sorted(events, key=lambda item: item.get("date", ""), reverse=True):
+        attempted += 1
         try:
             summary = fetch(players.SUMMARY + "?" + urlencode({"event": event["id"]}))
             extracted = players.extract(event, summary)
             if extracted:
                 if len(rows) + len(extracted) > MAX_ROWS:
+                    limit_hit = True
                     break
                 rows.extend(extracted)
                 games += 1
         except Exception:
             continue
         if len(rows) >= MAX_ROWS:
+            limit_hit = True
             break
+    if diagnostics is not None:
+        diagnostics.update({"row_limit_reached": limit_hit,
+                            "summaries_attempted": attempted,
+                            "summaries_without_usable_rows": attempted - games - int(limit_hit and len(rows) < MAX_ROWS)})
     return rows, games
 
 
@@ -85,7 +94,8 @@ def main():
     now = datetime.now(timezone.utc)
     try:
         events = recent_completed_events(now, players.fetch)
-        rows, games = assemble(events, players.fetch)
+        diagnostics = {}
+        rows, games = assemble(events, players.fetch, diagnostics)
         result = {
             "status": "ok" if rows else "no_history",
             "checked_at": now.isoformat(),
@@ -93,8 +103,8 @@ def main():
             "games": games,
             "events_discovered": len(events),
             "row_limit": MAX_ROWS,
-            "row_limit_reached": len(rows) >= MAX_ROWS,
-            "events_without_usable_boxscores_or_not_processed": max(0, len(events) - games),
+            **diagnostics,
+            "events_not_attempted": max(0, len(events) - diagnostics["summaries_attempted"]),
             "rows": rows,
             "limitations": "Daily scoreboard sampling across up to eighteen recent NFL weeks; may miss incomplete ESPN summaries, games outside the lookback window, or games not processed due to row limits. Not guaranteed full-season coverage or calibrated predictions."
         }
