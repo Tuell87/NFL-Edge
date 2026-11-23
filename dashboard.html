@@ -1,7 +1,16 @@
 <!doctype html>
-<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#0b1220"><meta name="referrer" content="no-referrer"><title>NFL Edge | Project Command Center</title>
-<style>:root{font-family:system-ui,-apple-system,sans-serif;background:#0b1220;color:#edf5ff}*{box-sizing:border-box}body{margin:0}main{max-width:960px;margin:auto;padding:20px 16px 60px}a{color:#4ee1ad}.actions{display:flex;flex-wrap:wrap;gap:14px}.panel{background:#17283d;border:1px solid #37506a;border-radius:14px;padding:17px;margin:16px 0}h1{font-size:27px}h2{font-size:19px}.muted{color:#b7c8da}.list{padding:0;list-style:none}.list li{padding:12px 0;border-bottom:1px solid #34495d}.list li:last-child{border:0}button{background:#167a60;color:white;border:0;border-radius:10px;padding:11px 16px;font-weight:700;cursor:pointer}button:disabled{opacity:.5}.grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}@media(max-width:600px){.grid{grid-template-columns:1fr}}</style></head>
-<body><main><a href="./">← Game Day</a><h1>Project Command Center</h1><p class="muted">Read-only GitHub development status and published research coverage. No fabricated completion percentage, prediction approval or sportsbook recommendations.</p>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#0b1220"><meta name="referrer" content="no-referrer"><title>NFL Edge | Project Command Center</title>
+<style>:root{font-family:system-ui,-apple-system,sans-serif;background:#0b1220;color:#edf5ff}*{box-sizing:border-box}body{margin:0}main{max-width:960px;margin:auto;padding:20px 16px 60px}a{color:#4ee1ad}.actions{display:flex;flex-wrap:wrap;gap:14px}.panel{background:#17283d;border:1px solid #37506a;border-radius:14px;padding:17px;margin:16px 0}h1{font-size:27px}h2{font-size:19px}.muted{color:#b7c8da}.list{padding:0;list-style:none}.list li{padding:12px 0;border-bottom:1px solid #34495d}.list li:last-child{border:0}button{background:#167a60;color:white;border:0;border-radius:10px;padding:11px 16px;font-weight:700;cursor:pointer}button:disabled{opacity:.5}.grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}@media(max-width:600px){.grid{grid-template-columns:1fr}}</style><link rel="stylesheet" href="./mobile-navigation.css">
+</head>
+<body>
+<nav class="mobile-sections" aria-label="Main site sections">
+  <a href="./#games">Games</a>
+  <a href="./#players">Players</a>
+  <a href="./#odds">Odds &amp; Tools</a>
+  <a href="./#research">Research</a>
+  <a href="./#project" aria-current="true">Project</a>
+</nav>
+<main><a href="./">← Game Day</a><h1>Project Command Center</h1><p class="muted">Read-only GitHub development status and published research coverage. No fabricated completion percentage, prediction approval or sportsbook recommendations.</p>
 <div class="actions"><button id="refresh" type="button">Refresh status</button><a href="https://github.com/Tuell87/NFL-Edge/issues/new" target="_blank" rel="noopener noreferrer">Request a change</a><a href="https://github.com/Tuell87/NFL-Edge/blob/main/NFL-EDGE-PROJECT-TRACKER.md" target="_blank" rel="noopener noreferrer">Project tracker</a><a href="https://github.com/Tuell87/NFL-Edge/actions" target="_blank" rel="noopener noreferrer">Actions</a></div>
 <p id="status" role="status" aria-live="polite">Loading project status…</p>
 <div class="grid"><section class="panel"><h2>Open pull requests</h2><p id="pr-count" class="muted">Loading…</p><ul class="list" id="prs"></ul></section><section class="panel"><h2>Recent CI and deployments</h2><ul class="list" id="runs"></ul></section></div>

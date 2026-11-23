@@ -1,0 +1,150 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>NFL Edge | Game Matchup</title>
+<style>
+:root{color-scheme:dark;font-family:system-ui,sans-serif;background:#0b1220;color:#eaf4ff}
+body{margin:0}main{max-width:850px;margin:auto;padding:16px 14px 24px}
+a{color:#55e4b4}section{margin:16px 0;padding:16px;background:#152438;border-radius:10px}
+h2{margin-top:0}.muted{color:#b5c9db}li{padding-block:5px}summary{cursor:pointer;padding-block:8px}
+select{font:inherit;min-height:44px;margin-left:8px}ul{padding-left:25px}
+</style>
+<link rel="stylesheet" href="./mobile-navigation.css">
+</head>
+<body>
+<nav class="mobile-sections" aria-label="Main site sections">
+  <a href="./#games" aria-current="true">Games</a>
+  <a href="./#players">Players</a>
+  <a href="./#odds">Odds &amp; Tools</a>
+  <a href="./#research">Research</a>
+  <a href="./#project">Project</a>
+</nav>
+<main>
+  <a href="./#games">← Games</a>
+  <h1 id="title">Game matchup</h1>
+  <p id="game-status" role="status">Loading matchup…</p>
+  <section id="markets" hidden>
+    <h2>FanDuel odds snapshot</h2>
+    <p id="odds-status" role="status"></p>
+    <div id="all-markets"></div>
+  </section>
+  <section id="likely" hidden>
+    <h2>Highest market-implied chances</h2>
+    <label for="threshold">Minimum chance</label>
+    <select id="threshold"><option value="60">60%</option><option value="70" selected>70%</option><option value="80">80%</option><option value="90">90%</option></select>
+    <p class="muted">Based on published prices, including sportsbook margin. Independent matchup forecasts are currently unavailable.</p>
+    <p id="threshold-status" role="status"></p>
+    <ul id="ranked"></ul>
+  </section>
+  <section>
+    <h2>Tools</h2>
+    <a href="./workbench.html">Open Odds Workbench</a>
+  </section>
+</main>
+<script>
+'use strict';
+const $ = id => document.getElementById(id);
+const marketNames = {
+  h2h: 'Moneyline', spreads: 'Spread', totals: 'Game total',
+  player_anytime_td: 'Anytime touchdown',
+  player_reception_yds: 'Receiving yards', player_rush_yds: 'Rushing yards'
+};
+const label = key => marketNames[key] || String(key || 'Other').replaceAll('_', ' ');
+const normalize = name => String(name || '').trim().replace(/\s+/g, ' ').toLowerCase();
+
+function matchingMarkets(game, rows) {
+  const start = Date.parse(game.start);
+  const away = normalize(game.away?.name);
+  const home = normalize(game.home?.name);
+  if (!Number.isFinite(start) || !away || !home) return [];
+  return rows.filter(row => Number.isInteger(row?.odds) && Math.abs(row.odds) >= 100
+    && normalize(row.event) === away + ' @ ' + home
+    && Math.abs(Date.parse(row.commence_time) - start) <= 30 * 60 * 1000);
+}
+
+function impliedChance(price) {
+  return price > 0 ? 100 / (price + 100) : -price / (100 - price);
+}
+
+function selection(row, showMarket = false) {
+  const item = document.createElement('li');
+  const name = [row.player, row.side, row.line].filter(value => value != null && value !== '').join(' ');
+  const price = row.odds > 0 ? '+' + row.odds : row.odds;
+  item.textContent = (showMarket ? label(row.market) + ' · ' : '') + name + ' · '
+    + price + ' · ' + (100 * impliedChance(row.odds)).toFixed(1) + '% implied';
+  return item;
+}
+
+function showMarkets(rows) {
+  const groups = new Map();
+  for (const row of rows) {
+    if (!groups.has(row.market)) groups.set(row.market, []);
+    groups.get(row.market).push(row);
+  }
+  for (const [market, selections] of groups) {
+    const group = document.createElement('details');
+    const heading = document.createElement('summary');
+    heading.textContent = label(market) + ' (' + selections.length + ')';
+    const list = document.createElement('ul');
+    list.append(...selections.map(row => selection(row)));
+    group.append(heading, list);
+    $('all-markets').append(group);
+  }
+  function rank() {
+    const threshold = Number($('threshold').value);
+    const qualified = rows.filter(row => 100 * impliedChance(row.odds) >= threshold)
+      .sort((a, b) => impliedChance(b.odds) - impliedChance(a.odds));
+    $('ranked').replaceChildren(...qualified.map(row => selection(row, true)));
+    $('threshold-status').textContent = qualified.length
+      ? qualified.length + ' selections at or above ' + threshold + '%'
+      : 'No published selections reach ' + threshold + '%.';
+  }
+  $('threshold').addEventListener('change', rank);
+  rank();
+  $('likely').hidden = false;
+}
+
+async function readSnapshot(name) {
+  const response = await fetch('./data/' + name + '.json', {cache: 'no-store'});
+  if (!response.ok) throw new Error('Snapshot unavailable');
+  return response.json();
+}
+
+async function loadMatchup() {
+  const id = new URLSearchParams(location.search).get('id');
+  let game;
+  try {
+    const schedule = await readSnapshot('games');
+    game = id && schedule.games?.find(entry => String(entry.id) === id);
+  } catch {
+    $('game-status').textContent = 'The game schedule could not be loaded.';
+    return;
+  }
+  if (!game) {
+    $('game-status').textContent = 'This matchup is outside the current schedule snapshot.';
+    return;
+  }
+  $('title').textContent = game.away.name + ' at ' + game.home.name;
+  const start = new Date(game.start);
+  $('game-status').textContent = (game.status || 'Scheduled') + ' · '
+    + (game.start && Number.isFinite(start.getTime()) ? start.toLocaleString() : 'Kickoff time unavailable');
+  $('markets').hidden = false;
+  try {
+    const snapshot = await readSnapshot('odds');
+    if (!['ok', 'no_markets'].includes(snapshot.status)) throw new Error('Odds unavailable');
+    const rows = matchingMarkets(game, Array.isArray(snapshot.markets) ? snapshot.markets : []);
+    const checked = Date.parse(snapshot.updated_at);
+    $('odds-status').textContent = rows.length
+      ? 'Snapshot prices may change.' + (Number.isFinite(checked) ? ' Feed checked ' + new Date(checked).toLocaleString() + '.' : '')
+      : 'No FanDuel lines for this matchup in the current snapshot. Coverage is limited to selected games and prop markets.';
+    if (rows.length) showMarkets(rows);
+  } catch {
+    $('odds-status').textContent = 'The FanDuel snapshot is currently unavailable.';
+  }
+}
+loadMatchup();
+</script>
+</body>
+</html>
