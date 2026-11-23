@@ -140,6 +140,7 @@ def main():
     result["limitations"] = "Uncalibrated historical frequency estimate, not a pick or expected value. Injury/active status and opponent adjustments unverified. No parlays."
     OUTPUT.write_text(json.dumps(result, indent=2))
     print("Market-line audit:", result["status"], len(result["rows"]))
+    print("Market-line join diagnostics:", json.dumps(result.get("diagnostics", {}), sort_keys=True))
 
 if __name__ == "__main__":
     main()
