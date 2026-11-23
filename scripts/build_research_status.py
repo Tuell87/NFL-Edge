@@ -51,6 +51,8 @@ def build(history, rosters, matchups, seasons, rolling, now):
         "history": {"status": history.get("status", "unavailable"),
                     "rows": len(rows), "games": history.get("games", 0),
                     "age_hours": history_age,
+                    "archive_2024_status": history.get("archive_2024_status", "not_collected"),
+                    "archive_2024_games_added": history.get("archive_2024_games_added", 0),
                     "archive_2025_status": history.get("archive_2025_status", "not_collected"),
                     "archive_2025_games_added": history.get("archive_2025_games_added", 0)},
         "rosters": {"status": rosters.get("status", "unavailable"),
