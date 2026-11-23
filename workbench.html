@@ -1,7 +1,8 @@
 <!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#0b1220"><title>NFL Edge | Odds Workbench</title>
 <style>
-:root{font-family:system-ui,-apple-system,sans-serif;color:#edf4ff;background:#0b1220}*{box-sizing:border-box}body{margin:0}main{max-width:850px;margin:auto;padding:22px 16px 65px}a{color:#54e6b5}.card{background:#16263b;border:1px solid #34485e;border-radius:16px;padding:19px;margin:14px 0}h1{margin:10px 0;font-size:28px}h2{font-size:18px}.muted{color:#a7bad0}label{display:block;margin:12px 0 5px}input{width:100%;background:#0d1b2c;color:white;border:1px solid #52667d;border-radius:9px;padding:13px;font-size:17px}button{border:0;border-radius:10px;padding:13px 16px;background:#188366;color:white;font-weight:700;font-size:15px;cursor:pointer}.grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}.stat{font-size:26px;font-weight:800;color:#56e5b4}.small{font-size:13px}.warn{color:#ffd38a}.bad{color:#ffaaaa}.result{min-height:55px}ul{padding-left:20px}@media(max-width:400px){.grid{grid-template-columns:1fr}} 
+:root{font-family:system-ui,-apple-system,sans-serif;color:#edf4ff;background:#0b1220}*{box-sizing:border-box}body{margin:0}main{max-width:850px;margin:auto;padding:22px 16px 65px}a{color:#54e6b5}.card{background:#16263b;border:1px solid #34485e;border-radius:16px;padding:19px;margin:14px 0}h1{margin:10px 0;font-size:28px}h2{font-size:18px}.muted{color:#a7bad0}label{display:block;margin:12px 0 5px}input,select{width:100%;background:#0d1b2c;color:white;border:1px solid #52667d;border-radius:9px;padding:13px;font-size:17px}button{border:0;border-radius:10px;padding:13px 16px;background:#188366;color:white;font-weight:700;font-size:15px;cursor:pointer}.grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}.stat{font-size:26px;font-weight:800;color:#56e5b4}.small{font-size:13px}.warn{color:#ffd38a}.bad{color:#ffaaaa}.result{min-height:55px}ul{padding-left:20px}@media(max-width:400px){.grid{grid-template-columns:1fr}} 
+select{min-height:44px} .card [hidden]{display:none}
 </style><link rel="stylesheet" href="./mobile-navigation.css">
 </head><body>
 <nav class="mobile-sections" aria-label="Main site sections">
@@ -12,15 +13,139 @@
   <a href="./#project">Project</a>
 </nav>
 <main><a href="./">← NFL-Edge home</a><h1>Odds Workbench</h1><p class="muted">Enter a real sportsbook line and your <strong>own independently estimated</strong> probability. This calculator does not predict games or fetch live odds.</p>
-<div class="card"><h2>Evaluate one player prop</h2><label for="pick">Player / prop description</label><input id="pick" placeholder="Example: Player X — anytime TD" maxlength="120" autocomplete="off"><label for="odds">American odds (example: -150 or +220)</label><input id="odds" type="number" step="1" value="-150" inputmode="numeric"><label for="prob">Your estimated chance of winning (%)</label><input id="prob" type="number" step="0.1" min="0" max="100" placeholder="Optional, e.g. 65" inputmode="decimal"><label for="stake">Hypothetical stake ($)</label><input id="stake" type="number" min="0.01" step="0.01" value="10" inputmode="decimal"><p><button id="calc">Calculate</button></p><p id="message" class="warn small" role="status"></p></div>
+<div class="card"><h2>Evaluate a selection</h2>
+<label for="pick-choice">Market or selection</label>
+<select id="pick-choice">
+  <option value="" selected>No description</option>
+  <option value="Anytime touchdown">Anytime touchdown</option>
+  <option value="Rushing yards">Rushing yards</option>
+  <option value="Receiving yards">Receiving yards</option>
+  <option value="Moneyline">Moneyline</option>
+  <option value="Spread">Spread</option>
+  <option value="Game total">Game total</option>
+  <option value="custom">Custom…</option>
+</select>
+<div id="pick-custom" hidden>
+  <label for="pick">Custom market or selection</label>
+  <input id="pick" type="text" maxlength="120" autocomplete="off">
+</div>
+<label for="odds-choice">American odds</label>
+<select id="odds-choice">
+  <option value="-500">-500</option>
+  <option value="-400">-400</option>
+  <option value="-300">-300</option>
+  <option value="-250">-250</option>
+  <option value="-200">-200</option>
+  <option value="-175">-175</option>
+  <option value="-150" selected>-150</option>
+  <option value="-130">-130</option>
+  <option value="-120">-120</option>
+  <option value="-115">-115</option>
+  <option value="-110">-110</option>
+  <option value="-105">-105</option>
+  <option value="100">+100</option>
+  <option value="105">+105</option>
+  <option value="110">+110</option>
+  <option value="115">+115</option>
+  <option value="120">+120</option>
+  <option value="130">+130</option>
+  <option value="150">+150</option>
+  <option value="175">+175</option>
+  <option value="200">+200</option>
+  <option value="250">+250</option>
+  <option value="300">+300</option>
+  <option value="400">+400</option>
+  <option value="500">+500</option>
+  <option value="custom">Custom…</option>
+</select>
+<div id="odds-custom" hidden>
+  <label for="odds">Custom american odds</label>
+  <input id="odds" type="number" step="1" inputmode="numeric" value="-150">
+</div>
+<label for="prob-choice">Your estimated win chance (%)</label>
+<select id="prob-choice">
+  <option value="" selected>Skip win estimate</option>
+  <option value="40">40%</option>
+  <option value="45">45%</option>
+  <option value="50">50%</option>
+  <option value="55">55%</option>
+  <option value="60">60%</option>
+  <option value="65">65%</option>
+  <option value="70">70%</option>
+  <option value="75">75%</option>
+  <option value="80">80%</option>
+  <option value="85">85%</option>
+  <option value="90">90%</option>
+  <option value="95">95%</option>
+  <option value="custom">Custom…</option>
+</select>
+<div id="prob-custom" hidden>
+  <label for="prob">Custom your estimated win chance (%)</label>
+  <input id="prob" type="number" step="0.1" min="0" max="100" inputmode="decimal">
+</div>
+<label for="stake-choice">Hypothetical stake ($)</label>
+<select id="stake-choice">
+  <option value="1">$1</option>
+  <option value="2">$2</option>
+  <option value="5">$5</option>
+  <option value="10" selected>$10</option>
+  <option value="15">$15</option>
+  <option value="20">$20</option>
+  <option value="25">$25</option>
+  <option value="50">$50</option>
+  <option value="100">$100</option>
+  <option value="custom">Custom…</option>
+</select>
+<div id="stake-custom" hidden>
+  <label for="stake">Custom hypothetical stake ($)</label>
+  <input id="stake" type="number" min="0.01" max="1000000" step="0.01" inputmode="decimal" value="10">
+</div>
+<p><button type="button" id="calc">Calculate</button></p><p id="message" class="warn small" role="status"></p></div>
+<p id="evaluating" class="muted" hidden></p>
 <div class="grid"><div class="card"><div class="muted small">Sportsbook break-even chance</div><div class="stat" id="breakeven">—</div></div><div class="card"><div class="muted small">Potential profit if successful</div><div class="stat" id="profit">—</div></div><div class="card"><div class="muted small">Estimated expected net value</div><div class="stat" id="ev">—</div></div><div class="card"><div class="muted small">Your probability edge vs break-even</div><div class="stat" id="edge">—</div></div></div>
 <div class="card"><h2>Important limitations</h2><ul class="muted"><li>Sportsbook odds include margin; break-even chance is not a no-vig fair probability.</li><li>Expected value is meaningful only if your estimated probability is reliable and independent of the odds.</li><li>Positive calculated EV does not guarantee a winning wager or long-term profitability.</li><li>No data is sent to a sportsbook or stored on a server.</li></ul></div>
 </main><script>
 'use strict';
 const $=id=>document.getElementById(id);
 const fmt=n=>n.toLocaleString('en-US',{style:'currency',currency:'USD'});
+function fieldValue(id) {
+ const choice = $(id + '-choice').value;
+ return choice === 'custom' ? $(id).value : choice;
+}
+
+function prefill(id, value, label) {
+ const select = $(id + '-choice');
+ if (![...select.options].some(option => option.value === value)) {
+  select.add(new Option(label, value), select.options[0]);
+ }
+ select.value = value;
+}
+
+const params = new URLSearchParams(location.search);
+const selection = (params.get('pick') || '').trim().slice(0, 120);
+const price = Number(params.get('odds'));
+if (selection) prefill('pick', 'selection:' + selection, selection);
+if (Number.isSafeInteger(price) && Math.abs(price) >= 100) {
+ prefill('odds', String(price), price > 0 ? '+' + price : String(price));
+}
+
+for (const id of ['pick', 'odds', 'prob', 'stake']) {
+ $(id + '-choice').addEventListener('change', () => {
+  const custom = $(id + '-choice').value === 'custom';
+  $(id + '-custom').hidden = !custom;
+  if (custom) $(id).focus();
+  calculate();
+ });
+ $(id).addEventListener('input', calculate);
+}
+
 function calculate(){
- const odds=Number($('odds').value),stake=Number($('stake').value),raw=$('prob').value.trim();
+ const pickChoice = $('pick-choice').value;
+ const description = pickChoice.startsWith('selection:')
+  ? pickChoice.slice('selection:'.length) : fieldValue('pick').trim();
+ $('evaluating').textContent = description;
+ $('evaluating').hidden = !description;
+ const odds=Number(fieldValue('odds')),stake=Number(fieldValue('stake')),raw=fieldValue('prob').trim();
  $('breakeven').textContent=$('profit').textContent=$('ev').textContent=$('edge').textContent='—';
  if(!Number.isInteger(odds)||Math.abs(odds)<100||!Number.isFinite(stake)||stake<=0||stake>1000000){$('message').textContent='Enter valid American odds (at least +100 or at most -100) and a positive stake.';return;}
  const breakEven=odds>0?100/(odds+100):-odds/(-odds+100);

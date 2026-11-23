@@ -74,6 +74,15 @@ function selection(row, showMarket = false) {
   const price = row.odds > 0 ? '+' + row.odds : row.odds;
   item.textContent = (showMarket ? label(row.market) + ' · ' : '') + name + ' · '
     + price + ' · ' + (100 * impliedChance(row.odds)).toFixed(1) + '% implied';
+  const workbench = document.createElement('a');
+  const params = new URLSearchParams({
+    pick: [label(row.market), name].filter(Boolean).join(' · '),
+    odds: String(row.odds),
+  });
+  workbench.href = './workbench.html?' + params;
+  workbench.textContent = 'Use in Workbench';
+  workbench.setAttribute('aria-label', 'Use ' + label(row.market) + ' ' + name + ' in Workbench');
+  item.append(' · ', workbench);
   return item;
 }
 
