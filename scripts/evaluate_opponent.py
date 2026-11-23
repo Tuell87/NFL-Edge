@@ -7,6 +7,7 @@ edge. Every comparison uses information strictly earlier than the target date.
 """
 import importlib.util
 import json
+import random
 from collections import defaultdict
 from datetime import datetime, timezone
 from pathlib import Path
@@ -68,6 +69,35 @@ def prepare(rows):
     return [value for key, value in unique.items() if key not in ambiguous]
 
 
+BOOTSTRAP_REPLICATES = 1000
+BOOTSTRAP_SEED = 20261123
+
+
+def event_cluster_interval(pairs, replicates=BOOTSTRAP_REPLICATES, seed=BOOTSTRAP_SEED):
+    """Percentile interval for paired MAE improvement, resampling entire events.
+
+    Descriptive uncertainty only; sampled events are not independent seasons,
+    and the historical sample is not randomly selected.
+    """
+    clusters = defaultdict(list)
+    for player_error, adjusted_error, event, _ in pairs:
+        clusters[event].append(player_error - adjusted_error)
+    if len(clusters) < 5:
+        return None
+    events = sorted(clusters)
+    rng = random.Random(seed)
+    estimates = []
+    for _ in range(replicates):
+        chosen = [clusters[events[rng.randrange(len(events))]]
+                  for _ in events]
+        errors = [value for group in chosen for value in group]
+        estimates.append(sum(errors) / len(errors))
+    estimates.sort()
+    low = estimates[int(0.025 * (len(estimates) - 1))]
+    high = estimates[int(0.975 * (len(estimates) - 1))]
+    return round(low, 4), round(high, 4)
+
+
 def evaluate(rows):
     records = prepare(rows)
     by_player = defaultdict(list)
@@ -114,6 +144,7 @@ def evaluate(rows):
         n = len(sample)
         base = sum(item[0] for item in sample) / n if n else None
         adj = sum(item[1] for item in sample) / n if n else None
+        interval = event_cluster_interval(sample)
         metrics.append({
             "category": category,
             "paired_observations": n,
@@ -122,6 +153,9 @@ def evaluate(rows):
             "player_only_mae": round(base, 4) if base is not None else None,
             "opponent_adjusted_mae": round(adj, 4) if adj is not None else None,
             "mae_improvement_yards": round(base - adj, 4) if n else None,
+            "improvement_interval_95_low": interval[0] if interval else None,
+            "improvement_interval_95_high": interval[1] if interval else None,
+            "uncertainty_method": "Event-cluster bootstrap, 1000 fixed-seed resamples; descriptive only",
             "adjustment_wins": sum(r[1] < r[0] for r in sample),
             "adjustment_losses": sum(r[1] > r[0] for r in sample),
             "adjustment_ties": sum(r[1] == r[0] for r in sample),
@@ -136,7 +170,7 @@ def evaluate(rows):
         "eligible_rows": len(records),
         "metrics": metrics,
         "method": "Paired chronological player mean vs shrunken opponent allowed-yards ratio; strictly earlier dates, >=5 prior player games, >=3 distinct prior opponent games and >=20 prior opponent player rows, 30-row shrinkage, factor clipped to 0.75–1.25.",
-        "limitations": "Research-only descriptive comparison using the same historical sample. Opponent ratios reflect player mix, offensive usage, schedules, and incomplete box scores; not adjusted for injuries, opponent defensive strength, bookmaker lines, or game-day roster. Comparisons are correlated across players and games; no verified betting edge."
+        "limitations": "Research-only descriptive comparison using the same historical sample. Opponent ratios reflect player mix, offensive usage, schedules, and incomplete box scores; not adjusted for injuries, opponent defensive strength, bookmaker lines, or game-day roster. Comparisons are correlated across players and games. Event-cluster bootstrap intervals are descriptive only and do not account for season selection, model choice, or future distribution shift; no verified betting edge."
     }
 
 
