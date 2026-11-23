@@ -7,7 +7,7 @@ spec.loader.exec_module(mod)
 NOW=datetime(2026,11,22,19,tzinfo=timezone.utc)
 def fixtures():
     history={"status":"ok","checked_at":"2026-11-22T18:00:00Z","rows":[
-        {"event_id":str(i),"game_date":f"2026-09-{i+1:02d}T20:00:00Z","player":"Sample Runner",
+        {"event_id":str(i),"game_date":f"2026-09-{i+1:02d}T20:00:00Z","player":"Sample Runner","player_id":"player-1",
          "category":"rushing","stats":{"YDS":str(40+i)}} for i in range(6)]}
     odds={"status":"ok","updated_at":"2026-11-22T18:30:00Z","markets":[
         {"market":"player_rush_yds","side":"Over","line":44.5,"player":"Sample Runner",
@@ -37,6 +37,10 @@ class AuditTests(unittest.TestCase):
     def test_no_future_games(self):
         h,o,m=fixtures()
         o["markets"][0]["commence_time"]="2026-11-21T18:00:00Z"
+        self.assertEqual(mod.build(h,o,m,NOW)["rows"],[])
+    def test_same_name_distinct_ids_are_rejected(self):
+        h,o,m=fixtures()
+        h["rows"].append({**h["rows"][0],"player_id":"player-2","event_id":"different"})
         self.assertEqual(mod.build(h,o,m,NOW)["rows"],[])
     def test_minimum_five_prior_games(self):
         h,o,m=fixtures()
