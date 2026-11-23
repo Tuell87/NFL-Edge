@@ -9,6 +9,10 @@ spec = importlib.util.spec_from_file_location("sample_quality", "scripts/sample_
 sample_quality = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(sample_quality)
 
+spec_observations = importlib.util.spec_from_file_location("observations", "scripts/observations.py")
+observations = importlib.util.module_from_spec(spec_observations)
+spec_observations.loader.exec_module(observations)
+
 HISTORY = Path("data/history.json")
 OUTPUT = Path("data/baseline.json")
 # ESPN game box score labels vary by category; use only unambiguous yards labels.
@@ -33,12 +37,12 @@ def parse_yards(row):
 
 def build(rows):
     groups = {}
-    for row in rows:
+    for row in observations.unique_rows(rows):
         parsed = parse_yards(row)
         if not parsed:
             continue
         market, yards = parsed
-        player_id = str(row.get("player_id") or row.get("player") or "").strip()
+        player_id = str(row.get("player_id") or "").strip()
         event_id = str(row.get("event_id") or "").strip()
         if not player_id or not event_id:
             continue
