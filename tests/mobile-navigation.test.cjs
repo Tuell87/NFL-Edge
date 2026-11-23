@@ -42,7 +42,8 @@ test('player and historical pages return to main navigation tabs',()=>{
  assert.match(history,/href="\.\/#players"/);
 });
 test('no browser-side API key or external scripts added',()=>{
- assert.doesNotMatch(home+matchups,/api\.the-odds-api\.com|localStorage|<script[^>]+src=/);
+ const html = (home+matchups).replace('<script src="./search-choices.js"></script>', '');
+ assert.doesNotMatch(html,/api\.the-odds-api\.com|localStorage|<script[^>]+src=/);
 });
 
 test('matchup pagination can reach records beyond the old 60-row cap', async () => {
@@ -59,8 +60,14 @@ test('matchup pagination can reach records beyond the old 60-row cap', async () 
  }
  const elements = Object.fromEntries(['list', 'search', 'market', 'quality', 'status', 'pagination', 'previous', 'next']
   .map(id => [id, element()]));
+ elements['search-choice'] = Object.assign(element(), {dataset: {defaultLabel: 'All players and teams'}});
+ Object.defineProperty(elements['search-choice'], 'options', {get() { return this.children; }});
+ elements.search.select = () => {};
+ elements.search.dispatchEvent = event => elements.search.handlers[event.type]();
  const records = Array.from({length: 65}, (_, i) => ({player: 'Player ' + i, market: 'Receiving'}));
- await vm.runInNewContext(matchups.match(/<script>([\s\S]+)<\/script>/)[1], {
+ await vm.runInNewContext(fs.readFileSync('search-choices.js', 'utf8') + '\n' + matchups.match(/<script>([\s\S]+)<\/script>/)[1], {
+  Option: function(text, value) { Object.assign(this, {text, value}); },
+  Event: function(type) { this.type = type; },
   document: {createElement: element, getElementById: id => elements[id]},
   fetch: async () => ({ok: true, json: async () => ({status: 'ok', matchups: records})}),
  });
@@ -69,6 +76,14 @@ test('matchup pagination can reach records beyond the old 60-row cap', async () 
  assert.equal(elements.status.textContent, 'Showing 61–65 of 65 matching records');
  assert.equal(elements.status.focused, true);
  assert.equal(elements.next.disabled, true);
+ elements['search-choice'].value = 'name:Player 0';
+ elements['search-choice'].onchange();
+ assert.equal(elements.search.hidden, true);
+ assert.equal(elements.status.textContent, 'Showing 1–1 of 1 matching records');
+ elements['search-choice'].value = 'custom';
+ elements['search-choice'].onchange();
+ assert.equal(elements.search.hidden, false);
+ assert.equal(elements.search.focused, true);
  elements.search.value = 'Player 0';
  elements.search.handlers.input();
  assert.equal(elements.status.textContent, 'Showing 1–1 of 1 matching records');
