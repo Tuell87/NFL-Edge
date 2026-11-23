@@ -46,6 +46,7 @@ class RosterQualityTests(unittest.TestCase):
                 "holdout.json": {"status": "insufficient_data", "metrics": []},
                 "opponent_evaluation.json": {"status": "insufficient_data", "metrics": []},
                 "opponent_holdout.json": {"status": "insufficient_data", "metrics": []},
+                "opponent_rolling.json": {"status": "insufficient_data", "windows": [], "prediction_ready": False},
                 "market_audit.json": {"status": "ok", "rows": [
                     {"prediction_ready": False, "recommended": True}]},
             }
