@@ -55,7 +55,7 @@ class RosterTests(unittest.TestCase):
                   "home": {"name": "Team A"}, "away": {"name": "Team B"}}]
         players = [{"player": "Example", "player_id": "12", "team": "Team A",
                     "market": "player_rush_yds", "games": 7}]
-        rosters = {"teams": [{"team": "Team A", "status": "listed",
+        rosters = {"checked_at": "2026-11-23T00:00:00Z", "teams": [{"team": "Team A", "status": "listed",
                              "athletes": [{"player_id": "99", "player": "Other"}]}]}
         rows = matchups.build(games, players, datetime(2026, 11, 23, tzinfo=timezone.utc), rosters)
         self.assertEqual(rows[0]["roster_listing"], "not_found_in_snapshot")
