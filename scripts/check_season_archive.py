@@ -53,14 +53,21 @@ def inspect(archive, expected_season=2025):
     safe = not problems and bool(events)
     attempted = archive.get("scoreboard_days_attempted", 0)
     failed = archive.get("scoreboard_days_failed", 0)
+    near_full_season = len(events) >= 285
+    # Empty/unsupported scoreboard dates can fail even when ESPN has yielded
+    # a near-full 285-game regular-season/playoff sample. Do not redownload
+    # hundreds of summaries every six hours solely because unrelated empty
+    # dates failed; still require stable IDs, dates and successful coverage.
     cacheable = (safe and len(events) >= MIN_CACHE_GAMES and len(dates) >= 12
                  and type(attempted) is int and attempted >= 100
-                 and type(failed) is int and 0 <= failed <= MAX_FAILED_SCOREBOARD_DAYS)
+                 and type(failed) is int and 0 <= failed <= attempted
+                 and (failed <= MAX_FAILED_SCOREBOARD_DAYS or near_full_season))
     if not cacheable:
         problems.append("not enough reliable coverage to cache permanently")
     return {"cacheable": cacheable, "safe_to_merge": safe,
             "event_count": len(events), "rows": len(rows),
-            "observed_dates": len(dates), "issues": problems}
+            "observed_dates": len(dates), "near_full_season_event_count": near_full_season,
+            "scoreboard_days_failed": failed, "issues": problems}
 
 
 def main():
