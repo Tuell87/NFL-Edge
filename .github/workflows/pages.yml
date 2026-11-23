@@ -50,15 +50,21 @@ jobs:
       - name: Compute daily history cache key
         id: history_day
         run: echo "day=$(date -u +%Y%m%d)" >> "$GITHUB_OUTPUT"
-      - name: Restore daily historical NFL sample
+      - name: Restore unmerged daily historical NFL sample
         id: history_cache
-        uses: actions/cache@v4
+        uses: actions/cache/restore@v4
         with:
           path: data/history.json
-          key: nfl-history-v5-atomic-games-${{ steps.history_day.outputs.day }}
+          key: nfl-history-v6-unmerged-${{ steps.history_day.outputs.day }}
       - name: Collect historical NFL player results
         if: steps.history_cache.outputs.cache-hit != 'true'
         run: python3 scripts/fetch_history.py
+      - name: Cache only the raw, unmerged daily historical sample
+        if: steps.history_cache.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v4
+        with:
+          path: data/history.json
+          key: nfl-history-v6-unmerged-${{ steps.history_day.outputs.day }}
       - name: Restore cached 2025 NFL season archive
         id: archive_cache
         uses: actions/cache/restore@v4
