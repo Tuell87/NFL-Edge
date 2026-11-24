@@ -39,6 +39,7 @@ select{min-height:44px} .card [hidden]{display:none}
   <label for="slip-quote">Published selection</label>
   <select id="slip-quote"><option value="">Choose a selection</option></select>
   <p class="muted small" id="slip-feed" role="status">Loading FanDuel snapshot…</p>
+  <p class="muted small" id="slip-coverage" role="status" hidden>Some game prices could not be loaded.</p>
   <button type="button" id="slip-add" disabled>Add selection</button>
   <details class="slip-manual">
     <summary>Enter a line manually</summary>
@@ -497,6 +498,7 @@ async function loadSlipProps() {
   const data = await response.json();
   const now = Date.now();
   if (data.status !== 'ok' || !slipFreshTimestamp(data.updated_at, now)) throw new Error('Snapshot unavailable or stale');
+  $('slip-coverage').hidden = !(Number.isInteger(data.events_failed) && data.events_failed > 0);
   publishedProps = (Array.isArray(data.markets) ? data.markets : [])
    .filter(row => typeof row?.market === 'string' && row.market.startsWith('player_')
     && typeof row.player === 'string' && row.player.trim() && typeof row.event === 'string' && row.event.trim() && slipPriceValid(row.odds) && Date.parse(row.commence_time) > now

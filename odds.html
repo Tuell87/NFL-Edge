@@ -164,6 +164,9 @@ async function load() {
       no_markets: 'FanDuel returned no props for the games checked.',
     };
     status.textContent = messages[body.status] || 'The odds feed is currently unavailable.';
+    if (body.status === 'ok' && Number.isInteger(body.events_failed) && body.events_failed > 0) {
+      status.textContent += ' Some game prices could not be loaded.';
+    }
   } catch {
     rows = [];
     $('updated').textContent = '';

@@ -301,6 +301,9 @@ async function loadMatchup() {
     $('odds-status').textContent = rows.length
       ? 'Snapshot prices may change.' + (Number.isFinite(checked) ? ' Feed checked ' + new Date(checked).toLocaleString() + '.' : '')
       : 'No FanDuel lines for this matchup in the current snapshot. Coverage is limited to selected games and prop markets.';
+    if (snapshot.status === 'ok' && Number.isInteger(snapshot.events_failed) && snapshot.events_failed > 0) {
+      $('odds-status').textContent += ' Some game prices could not be loaded.';
+    }
     if (rows.length) showMarkets(rows);
   } catch {
     $('odds-status').textContent = 'The FanDuel snapshot is currently unavailable.';
