@@ -1,0 +1,26 @@
+---
+name: ship-check
+description: Audit NFL Edge at the end of development work, before calling a change done, or when asked to run Ship Check. Inspect every worktree, local and remote branches, release paperwork, test evidence, stashes, and deployment freshness. Report only findings and their next steps.
+---
+
+# Ship Check
+
+Start in audit mode, even if repairs have been requested. Use read-only commands and read-only GitHub operations. Keep Git's optional writes disabled with `GIT_OPTIONAL_LOCKS=0`. Leave fetching into the audited repository, running tests that might write files, committing, merging, pushing, restoring, and deleting until the optional repair phase. Landing requires the owner's explicit go.
+
+1. Identify the primary checkout and all linked worktrees with `git worktree list --porcelain`. In each accessible worktree, inspect `git status --porcelain=v1 --untracked-files=all`. Use `git status --short --ignored=matching` to spot ignored generated output when relevant. Check that the primary checkout is on `main`. Detached review worktrees are fine. Inspect tracked changes with `git diff --name-status` and `git diff --cached --name-status`. Compare generated paths and other unexpected files against task scope and known baselines. Describe uncertain changes as needing review. Never print credential contents.
+2. Compare local `main` with the current remote `main`, and enumerate branch heads with `git for-each-ref refs/heads` and `git ls-remote --heads origin` or the GitHub connector. Use commit ancestry where both objects are available. If an object is missing, compare on GitHub or report the gap. Cached remote-tracking refs alone do not establish remote state. Report unpublished local commits, remote branches with work still unmerged, and commits on local `main` absent from remote `main`. Use merged PR records and their merge commit SHAs to recognize squash or rebase merges, and check for branch commits added after the merged PR. A missing upstream alone is insufficient evidence that work is unpublished.
+3. For each branch with unmerged work, inspect its changes and PR for the required version bump, changelog entry with its commit line, and checklist item. Use the repository's documented release conventions, including the NFL Edge SHA and PR record rules in `AGENTS.md`. Where a convention or required artifact is undefined, report that it cannot be verified and suggest agreeing on the convention. Look for pre-push gate evidence tied to the exact branch tip. For NFL Edge, check the verification results in `.github/workflows/checks.yml` and `.github/workflows/pages.yml` through GitHub Actions. Distinguish evidence collected before a push from checks that ran afterward. An older green run or a green run on a different SHA does not establish that the current tip passed.
+4. List leftover stashes with `git stash list`. Compare the identified shared copy's commit with the latest merge on remote `main`. Use the shared copy path supplied by the owner or established project configuration. Use `origin/main` as the shared source for NFL Edge. If a separate shared checkout is expected and its path is unknown or inaccessible, report that verification gap.
+5. For NFL Edge, compare remote `main` with the live `release_sha` in `data/research_status.json` on GitHub Pages and corroborate it with the deployment run when available. A commit on remote `main` and a successful PR check are not deployment evidence. Report a pending, failed, stale, or unverified deployment with the relevant commit or workflow link.
+
+Lead with **Clean** when every applicable check is verified and no findings remain. Otherwise lead with **N things open**. Count each actionable issue or verification gap once. Show only sections with findings and give one specific next step per finding. Keep the audit read-only even when the next step is obvious.
+
+
+## Optional repair phase
+
+Enter this phase only when the owner asks to repair findings. Treat this as separate from the audit. Work through verified, authorized repairs and rerun the read-only audit afterward.
+
+1. Recheck each finding before changing it. Verify that each local path proposed for cleanup has the same contents as a committed copy reachable from current remote `main`, including earlier shipped commits. Preserve genuinely new or ambiguous edits and ask the owner before discarding them. Keep unrelated changes intact. Clean up only the verified paths and confirm the worktree status afterward.
+2. Update a clean local main or shared checkout with a fast-forward only after verifying history. A shallow checkout can make ancestry appear incomplete. In repair mode, fetch enough history to establish ancestry. Preserve any divergence for review.
+3. Fill in applicable release records using actual evidence and rerun relevant checks after changes. Do not backdate a pre-push result. Classify closed, unmerged branches with a documented owner decision. Preserve their tips until the owner explicitly authorizes deletion.
+4. Report what was repaired and what is still open. Obtain explicit owner approval before merging, deploying, or otherwise landing a change. A request to repair findings alone does not authorize landing.
